@@ -1,18 +1,28 @@
 import { NextResponse } from 'next/server';
-import db from '..//lib/db';
+import { supabase } from '@/lib/supabase';
 
 export async function POST(request: Request) {
   const { username, password } = await request.json();
 
   // Проверяем, есть ли такой пользователь
-  const existing = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+  const { data: existing } = await supabase
+    .from('users')
+    .select('username')
+    .eq('username', username)
+    .single();
+
   if (existing) {
     return NextResponse.json({ error: 'Пользователь уже существует' }, { status: 400 });
   }
 
-  // Сохраняем нового пользователя
-  const stmt = db.prepare('INSERT INTO users (username, password) VALUES (?, ?)');
-  stmt.run(username, password);
+  // Добавляем пользователя
+  const { error } = await supabase
+    .from('users')
+    .insert([{ username, password }]);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
   return NextResponse.json({ success: true });
 }
