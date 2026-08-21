@@ -245,6 +245,7 @@ function Chat() {
           text: currentText,
           type: 'text',
           replyTo: currentReply,
+          avatar_url: avatarUrl,
         }),
       });
 
@@ -283,6 +284,7 @@ function Chat() {
             text: data.fileUrl,
             type: data.isImage ? 'image' : data.isVideo ? 'video' : 'file',
             fileName: file.name,
+            avatar_url: avatarUrl,
           }),
         });
       } else {
@@ -324,6 +326,7 @@ function Chat() {
       if (res.ok) {
         const data = await res.json();
         setAvatarUrl(data.avatarUrl);
+        // Обновляем аватарку в сообщениях
         setChatMessages((prev) =>
           prev.map((msg) =>
             msg.username === username
@@ -331,10 +334,11 @@ function Chat() {
               : msg
           )
         );
+        // Обновляем в списке чатов
         setChats((prev) =>
           prev.map((chat) => ({
             ...chat,
-            avatar_url: chat.otherUser === username ? data.avatarUrl : chat.avatar_url,
+            otherUserAvatar: chat.otherUser === username ? data.avatarUrl : chat.otherUserAvatar,
           }))
         );
       } else {
@@ -443,8 +447,14 @@ function Chat() {
                   onClick={() => selectChat(chat.id, otherUser)}
                   className={`w-full flex items-center gap-3 p-3 rounded-xl transition ${currentChatId === chat.id ? 'bg-white/10' : 'hover:bg-white/5'}`}
                 >
-                  <div className="w-10 h-10 rounded-full bg-red-950 flex items-center justify-center text-white font-bold">
-                    {otherUser.charAt(0).toUpperCase()}
+                  <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+                    {chat.otherUserAvatar ? (
+                      <img src={chat.otherUserAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: getAvatarColor(otherUser) }}>
+                        {otherUser.charAt(0).toUpperCase()}
+                      </div>
+                    )}
                   </div>
                   <div className="flex-1 text-left">
                     <span className="text-white font-medium text-sm block">{otherUser}</span>
@@ -497,14 +507,6 @@ function Chat() {
                 key={msg.id} 
                 className={`slide-up flex items-start gap-2 mb-3 ${isMyMessage ? 'flex-row-reverse' : ''}`}
               >
-                {!isMyMessage && (
-                  <div 
-                    className="rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 w-8 h-8 text-sm"
-                    style={{ backgroundColor: getAvatarColor(msg.username) }}
-                  >
-                    {msg.username.charAt(0).toUpperCase()}
-                  </div>
-                )}
                 <div className={`inline-block px-4 py-2 rounded-2xl max-w-[80%] ${isMyMessage ? 'bg-red-950 text-white' : 'bg-white/10 text-gray-200'}`}>
                   {msg.type === 'image' && <img src={msg.text} alt="Фото" className="max-w-[250px] rounded-xl" />}
                   {(!msg.type || msg.type === 'text') && <span className="break-words text-sm">{msg.text}</span>}
@@ -559,7 +561,7 @@ function Chat() {
             <div className="mb-6">
               <p className="text-gray-400 text-sm mb-2">Аватарка</p>
               <div className="flex items-center gap-4">
-                <div className="w-20 h-20 rounded-full bg-red-950 flex items-center justify-center text-white text-3xl font-bold overflow-hidden">
+                <div className="w-20 h-20 rounded-full overflow-hidden bg-red-950 flex items-center justify-center text-white text-3xl font-bold">
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
