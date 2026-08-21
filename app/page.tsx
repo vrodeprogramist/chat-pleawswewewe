@@ -345,6 +345,7 @@ function Chat() {
 
   return (
     <div className="h-dvh flex bg-[#1c1212] relative">
+      {/* Шторка с чатами */}
       <div className={`absolute md:relative z-20 h-full transition-transform duration-300 ${isChatListOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
         <div className="w-80 h-full bg-black/30 border-r border-white/10 flex flex-col">
           <div className="p-4 border-b border-white/10">
@@ -374,6 +375,8 @@ function Chat() {
               )}
             </div>
           </div>
+
+          {/* СПИСОК ЧАТОВ */}
           <div className="flex-1 overflow-y-auto p-2">
             {chats.length === 0 && <div className="text-gray-500 text-center text-sm mt-10">Нет чатов. Найди друга по нику!</div>}
             {chats.map((chat) => {
@@ -402,6 +405,7 @@ function Chat() {
         </div>
       </div>
 
+      {/* Основная область чата */}
       <div className="flex-1 flex flex-col overflow-hidden relative">
         <header className="bg-black/50 p-4 flex justify-between items-center border-b border-white/10 flex-shrink-0">
           <div className="flex items-center gap-3">
