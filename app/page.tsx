@@ -137,6 +137,8 @@ function Chat() {
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -291,6 +293,62 @@ function Chat() {
     }
   };
 
+  const loadAvatar = async () => {
+    try {
+      const res = await fetch(`/api/profile?username=${username}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.avatarUrl) {
+          setAvatarUrl(data.avatarUrl);
+        }
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки аватарки:', error);
+    }
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('username', username);
+
+    try {
+      const res = await fetch('/api/upload-avatar', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setAvatarUrl(data.avatarUrl);
+        setChatMessages((prev) =>
+          prev.map((msg) =>
+            msg.username === username
+              ? { ...msg, avatar_url: data.avatarUrl }
+              : msg
+          )
+        );
+        setChats((prev) =>
+          prev.map((chat) => ({
+            ...chat,
+            avatar_url: chat.otherUser === username ? data.avatarUrl : chat.avatar_url,
+          }))
+        );
+      } else {
+        alert('Ошибка загрузки аватарки');
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки аватарки:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadAvatar();
+  }, []);
+
   useEffect(() => {
     if (!currentChatId) return;
 
@@ -303,7 +361,6 @@ function Chat() {
           if (newMsg.chat_id === currentChatId && !messageIds.current.has(newMsg.id)) {
             messageIds.current.add(newMsg.id);
             setChatMessages((prev) => [...prev, newMsg]);
-            // Обновляем последнее сообщение в чате
             setChats((prev) => {
               const updated = prev.map((chat) => {
                 if (chat.id === currentChatId) {
@@ -376,7 +433,6 @@ function Chat() {
             </div>
           </div>
 
-          {/* СПИСОК ЧАТОВ */}
           <div className="flex-1 overflow-y-auto p-2">
             {chats.length === 0 && <div className="text-gray-500 text-center text-sm mt-10">Нет чатов. Найди друга по нику!</div>}
             {chats.map((chat) => {
@@ -412,11 +468,23 @@ function Chat() {
             <button onClick={() => setIsChatListOpen(!isChatListOpen)} className="md:hidden text-gray-400 hover:text-white transition">
               {isChatListOpen ? '✕' : '☰'}
             </button>
-            <span className="text-white font-medium">{currentChatId ? `Чат с ${currentChatUser}` : 'Выберите чат'}</span>
+            <span className="text-white font-medium">
+              {currentChatId ? `Чат с ${currentChatUser}` : 'Выберите чат'}
+            </span>
           </div>
-          <button onClick={() => { localStorage.removeItem('chat_username'); window.location.reload(); }} className="text-sm text-gray-400 hover:text-white transition">
-            Выйти
-          </button>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-300 text-sm hidden sm:block">{username}</span>
+            <button
+              onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+              className="text-gray-400 hover:text-white transition p-1 text-xl"
+              title="Настройки"
+            >
+              ⚙️
+            </button>
+            <button onClick={() => { localStorage.removeItem('chat_username'); window.location.reload(); }} className="text-sm text-gray-400 hover:text-white transition">
+              Выйти
+            </button>
+          </div>
         </header>
 
         <div ref={messagesContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-4">
@@ -429,12 +497,17 @@ function Chat() {
                 key={msg.id} 
                 className={`slide-up flex items-start gap-2 mb-3 ${isMyMessage ? 'flex-row-reverse' : ''}`}
               >
-                {!isMyMessage && <div className="rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 w-8 h-8 text-sm" style={{ backgroundColor: getAvatarColor(msg.username) }}>{msg.username.charAt(0).toUpperCase()}</div>}
+                {!isMyMessage && (
+                  <div 
+                    className="rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 w-8 h-8 text-sm"
+                    style={{ backgroundColor: getAvatarColor(msg.username) }}
+                  >
+                    {msg.username.charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <div className={`inline-block px-4 py-2 rounded-2xl max-w-[80%] ${isMyMessage ? 'bg-red-950 text-white' : 'bg-white/10 text-gray-200'}`}>
-                  {!isMyMessage && <span className="font-bold text-xs opacity-70 block mb-1">{msg.username}</span>}
                   {msg.type === 'image' && <img src={msg.text} alt="Фото" className="max-w-[250px] rounded-xl" />}
                   {(!msg.type || msg.type === 'text') && <span className="break-words text-sm">{msg.text}</span>}
-                  {isMyMessage && <span className="font-bold text-xs opacity-70 block mt-1 text-right">{msg.username}</span>}
                 </div>
               </div>
             );
@@ -463,6 +536,79 @@ function Chat() {
           </form>
         )}
       </div>
+
+      {/* ===== НАСТРОЙКИ ===== */}
+      {isSettingsOpen && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1c1212] border border-white/10 rounded-2xl max-w-md w-full p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-white text-xl font-bold">Настройки</h2>
+              <button
+                onClick={() => setIsSettingsOpen(false)}
+                className="text-gray-400 hover:text-white transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mb-6 text-center">
+              <p className="text-gray-400 text-sm">Вы вошли как</p>
+              <p className="text-white text-xl font-bold">{username}</p>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-gray-400 text-sm mb-2">Аватарка</p>
+              <div className="flex items-center gap-4">
+                <div className="w-20 h-20 rounded-full bg-red-950 flex items-center justify-center text-white text-3xl font-bold overflow-hidden">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    username.charAt(0).toUpperCase()
+                  )}
+                </div>
+                <label className="cursor-pointer bg-red-950 text-white px-4 py-2 rounded-xl hover:bg-red-900 transition">
+                  Изменить
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-gray-400 text-sm mb-2">Фон чата</p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  '#1c1212', '#1a1a2e', '#16213e', '#0f3460',
+                  '#4a2c2c', '#2d4a2c', '#4a2c4a', '#2c4a4a',
+                ].map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => {
+                      setChatColor(color);
+                      localStorage.setItem('chatColor', color);
+                    }}
+                    className={`w-10 h-10 rounded-full border-2 transition ${
+                      chatColor === color ? 'border-white' : 'border-transparent'
+                    }`}
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsSettingsOpen(false)}
+              className="w-full bg-red-950 text-white py-2 rounded-xl hover:bg-red-900 transition"
+            >
+              Закрыть
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
