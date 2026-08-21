@@ -22,7 +22,24 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json(data || []);
+    // Получаем аватарки для всех пользователей из таблицы users
+    const usernames = [...new Set(data.map((m: any) => m.username))];
+    const { data: users } = await supabase
+      .from('users')
+      .select('username, avatar_url')
+      .in('username', usernames);
+
+    const avatarMap = users?.reduce((acc: any, user: any) => {
+      acc[user.username] = user.avatar_url;
+      return acc;
+    }, {});
+
+    const messagesWithAvatars = data.map((msg: any) => ({
+      ...msg,
+      avatar_url: avatarMap?.[msg.username] || null,
+    }));
+
+    return NextResponse.json(messagesWithAvatars);
   } catch (error) {
     console.error('Ошибка в GET messages:', error);
     return NextResponse.json({ error: 'Внутренняя ошибка' }, { status: 500 });

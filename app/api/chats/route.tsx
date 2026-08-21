@@ -21,9 +21,24 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // Получаем аватарки для всех собеседников
+    const otherUsers = data.map((chat: any) => 
+      chat.user1 === username ? chat.user2 : chat.user1
+    );
+    const { data: users } = await supabase
+      .from('users')
+      .select('username, avatar_url')
+      .in('username', otherUsers);
+
+    const avatarMap = users?.reduce((acc: any, user: any) => {
+      acc[user.username] = user.avatar_url;
+      return acc;
+    }, {});
+
     const chatsWithUsers = data.map((chat: any) => ({
       ...chat,
       otherUser: chat.user1 === username ? chat.user2 : chat.user1,
+      otherUserAvatar: avatarMap?.[chat.user1 === username ? chat.user2 : chat.user1] || null,
     }));
 
     return NextResponse.json(chatsWithUsers);
@@ -45,7 +60,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Нельзя создать чат с самим собой' }, { status: 400 });
     }
 
-    // Проверяем, существует ли чат
     const { data: existing, error: findError } = await supabase
       .from('chats')
       .select('*')
