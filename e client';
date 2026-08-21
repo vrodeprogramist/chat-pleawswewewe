@@ -1,0 +1,11 @@
+[33mcommit 0fd768343a7e5caa7baf9313f97658d67debd277[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Author: vrodeprogramist <54kos_sh@mail.ru>
+Date:   Mon Aug 17 20:59:52 2026 +0700
+
+    Обновление: удаление и ответы на сообщения
+
+[33mcommit b345fa17f4a2a648022cbb0df29df4e36e7b3b99[m
+Author: vrodeprogramist <54kos_sh@mail.ru>
+Date:   Mon Aug 17 20:48:53 2026 +0700
+
+    Полное восстановление чата с удалением и ответами

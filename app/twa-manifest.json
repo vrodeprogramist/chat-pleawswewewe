@@ -1,0 +1,17 @@
+{
+  "packageId": "com.anonym.chat",
+  "host": "chat-pleawswewewe.vercel.app",
+  "name": "Анонимный чат",
+  "launcherName": "Чат",
+  "display": "standalone",
+  "themeColor": "#1c1212",
+  "backgroundColor": "#1c1212",
+  "startUrl": "/",
+  "iconUrl": "https://chat-pleawswewewe.vercel.app/icon-512.png",
+  "maskableIconUrl": "https://chat-pleawswewewe.vercel.app/icon-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "enableSiteSettingsShortcut": true,
+  "shortcuts": [],
+  "fallbackType": "customtabs",
+  "features": []
+}

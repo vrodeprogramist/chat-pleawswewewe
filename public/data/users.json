@@ -1,0 +1,16 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "email": "fdsfsdfd@mail.ru",
+      "password": "ффсчыфсы",
+      "name": "nknknkn"
+    },
+    {
+      "id": 2,
+      "email": "fdsfsdsfsfsfd@mail.ru",
+      "password": "ффсчыsfsfфсы",
+      "name": "sfsfsfsf"
+    }
+  ]
+}
