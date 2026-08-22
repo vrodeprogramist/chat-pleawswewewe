@@ -144,20 +144,8 @@ function Chat() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messageIds = useRef<Set<number>>(new Set());
 
-  // ===== СОХРАНЯЕМ ТЕКУЩИЙ ЧАТ В localStorage =====
-  const saveCurrentChat = (chatId: number | null, chatUser: string) => {
-    if (chatId) {
-      localStorage.setItem('currentChatId', String(chatId));
-      localStorage.setItem('currentChatUser', chatUser);
-    } else {
-      localStorage.removeItem('currentChatId');
-      localStorage.removeItem('currentChatUser');
-    }
-  };
-
-  // ===== ПРИ ЗАГРУЗКЕ НЕ ВЫБИРАЕМ НИКАКОЙ ЧАТ =====
+  // При загрузке не выбираем чат
   useEffect(() => {
-    // НЕ восстанавливаем чат, оставляем null
     setCurrentChatId(null);
     setCurrentChatUser('');
     localStorage.removeItem('currentChatId');
@@ -227,7 +215,8 @@ function Chat() {
         const chatId = data.chatId;
         setCurrentChatId(chatId);
         setCurrentChatUser(otherUser);
-        saveCurrentChat(chatId, otherUser);
+        localStorage.setItem('currentChatId', String(chatId));
+        localStorage.setItem('currentChatUser', otherUser);
         await loadChatMessages(chatId);
         if (window.innerWidth < 768) setIsChatListOpen(false);
       } else {
@@ -243,7 +232,8 @@ function Chat() {
   const selectChat = (chatId: number, otherUser: string) => {
     setCurrentChatId(chatId);
     setCurrentChatUser(otherUser);
-    saveCurrentChat(chatId, otherUser);
+    localStorage.setItem('currentChatId', String(chatId));
+    localStorage.setItem('currentChatUser', otherUser);
     loadChatMessages(chatId);
     if (window.innerWidth < 768) setIsChatListOpen(false);
   };
@@ -426,13 +416,22 @@ function Chat() {
   };
 
   return (
-    <div className="h-dvh flex bg-[#1c1515] relative">
+    <div className="h-dvh flex bg-[#1c1515] overflow-hidden relative">
       {/* Шторка с чатами - на телефоне на весь экран */}
       <div
-        className={`absolute inset-0 md:relative md:inset-auto z-20 h-full bg-[#1c1515] border-r border-white/10 flex flex-col transition-transform duration-300 ${
+        className={`absolute inset-0 z-30 bg-[#1c1515] flex flex-col transition-transform duration-300 ease-in-out ${
           isChatListOpen ? 'translate-x-0' : '-translate-x-full'
-        } md:translate-x-0 md:w-80 md:flex-shrink-0`}
+        } md:relative md:translate-x-0 md:w-80 md:flex-shrink-0 md:z-auto`}
       >
+        <div className="p-4 border-b border-white/10 flex items-center justify-between">
+          <span className="text-white font-bold text-lg">Чаты</span>
+          <button
+            onClick={() => setIsChatListOpen(false)}
+            className="md:hidden text-gray-400 hover:text-white transition"
+          >
+            ✕
+          </button>
+        </div>
         <div className="p-4 border-b border-white/10">
           <div className="relative">
             <input
@@ -517,7 +516,7 @@ function Chat() {
               onClick={() => setIsChatListOpen(!isChatListOpen)}
               className="md:hidden text-gray-400 hover:text-white transition"
             >
-              {isChatListOpen ? '✕' : '☰'}
+              ☰
             </button>
             <span className="text-white font-medium">
               {currentChatId ? `Чат с ${currentChatUser}` : 'Выберите чат'}
