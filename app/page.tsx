@@ -12,7 +12,6 @@ export default function Home() {
   const [themeColor, setThemeColor] = useState('#ffffff');
 
   useEffect(() => {
-    // Загружаем сохраненную тему
     const savedColor = localStorage.getItem('chatColor') || '#ffffff';
     setThemeColor(savedColor);
     
@@ -41,7 +40,6 @@ export default function Home() {
     checkAuth();
   }, []);
 
-  // Функция для определения, является ли цвет светлым
   const isLightColor = (color: string) => {
     if (color === '#ffffff' || color === '#FFFFFF' || color === 'white') return true;
     
@@ -201,12 +199,12 @@ function Chat() {
   const [isSearching, setIsSearching] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messageIds = useRef<Set<number>>(new Set());
 
-  // Получаем username и цвет из localStorage при монтировании
   useEffect(() => {
     const savedUsername = localStorage.getItem('chat_username') || '';
     const savedColor = localStorage.getItem('chatColor') || '#ffffff';
@@ -214,7 +212,6 @@ function Chat() {
     setChatColor(savedColor);
   }, []);
 
-  // При загрузке не выбираем чат
   useEffect(() => {
     setCurrentChatId(null);
     setCurrentChatUser('');
@@ -398,6 +395,7 @@ function Chat() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setIsUploadingAvatar(true);
     const formData = new FormData();
     formData.append('file', file);
     formData.append('username', username);
@@ -410,7 +408,11 @@ function Chat() {
 
       if (res.ok) {
         const data = await res.json();
+        
+        // Мгновенно обновляем аватарку в интерфейсе
         setAvatarUrl(data.avatarUrl);
+        
+        // Обновляем сообщения в текущем чате
         setChatMessages((prev) =>
           prev.map((msg) =>
             msg.username === username
@@ -418,17 +420,30 @@ function Chat() {
               : msg
           )
         );
+        
+        // Обновляем список чатов
         setChats((prev) =>
           prev.map((chat) => ({
             ...chat,
             otherUserAvatar: chat.otherUser === username ? data.avatarUrl : chat.otherUserAvatar,
           }))
         );
+        
+        // Перезагружаем чаты для получения актуальных данных
+        await loadChats();
+        
+        // Отправляем обновление через Supabase Realtime
+        await supabase
+          .from('users')
+          .update({ avatar_url: data.avatarUrl })
+          .eq('username', username);
       } else {
         alert('Ошибка загрузки аватарки');
       }
     } catch (error) {
       console.error('Ошибка загрузки аватарки:', error);
+    } finally {
+      setIsUploadingAvatar(false);
     }
   };
 
@@ -437,6 +452,52 @@ function Chat() {
       loadAvatar();
       loadChats();
     }
+  }, [username]);
+
+  // Подписка на изменения профилей для实时 обновления аватарок
+  useEffect(() => {
+    if (!username) return;
+
+    const subscription = supabase
+      .channel('users-changes')
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'users' },
+        (payload) => {
+          const updatedUser = payload.new;
+          
+          // Обновляем аватарки в списке чатов
+          setChats((prev) =>
+            prev.map((chat) => {
+              if (chat.user1 === updatedUser.username || chat.user2 === updatedUser.username) {
+                return {
+                  ...chat,
+                  otherUserAvatar: updatedUser.avatar_url,
+                };
+              }
+              return chat;
+            })
+          );
+          
+          // Обновляем аватарки в сообщениях текущего чата
+          setChatMessages((prev) =>
+            prev.map((msg) =>
+              msg.username === updatedUser.username
+                ? { ...msg, avatar_url: updatedUser.avatar_url }
+                : msg
+            )
+          );
+          
+          // Если обновился текущий пользователь, обновляем его аватар
+          if (updatedUser.username === username) {
+            setAvatarUrl(updatedUser.avatar_url);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [username]);
 
   useEffect(() => {
@@ -484,7 +545,6 @@ function Chat() {
     return colors[name.charCodeAt(0) % colors.length];
   };
 
-  // Функция для затемнения цвета
   const darkenColor = (color: string, amount: number = 0.7) => {
     if (color === '#ffffff' || color === '#FFFFFF' || color === 'white') {
       const grayValue = Math.floor(255 * amount);
@@ -502,7 +562,6 @@ function Chat() {
     return `rgb(${r}, ${g}, ${b})`;
   };
 
-  // Функция для определения, является ли цвет светлым
   const isLightColor = (color: string) => {
     if (color === '#ffffff' || color === '#FFFFFF' || color === 'white') return true;
     
@@ -515,6 +574,13 @@ function Chat() {
   };
 
   const isLight = isLightColor(chatColor);
+
+  const handleLogout = () => {
+    localStorage.removeItem('chat_username');
+    localStorage.removeItem('currentChatId');
+    localStorage.removeItem('currentChatUser');
+    window.location.reload();
+  };
 
   return (
     <div className="h-dvh flex overflow-hidden relative transition-colors duration-300" style={{ backgroundColor: chatColor }}>
@@ -652,15 +718,6 @@ function Chat() {
             >
               ⚙️
             </button>
-            <button
-              onClick={() => {
-                localStorage.removeItem('chat_username');
-                window.location.reload();
-              }}
-              className={`text-sm transition ${isLight ? 'text-gray-600' : 'text-gray-400'} hover:opacity-70`}
-            >
-              Выйти
-            </button>
           </div>
         </header>
 
@@ -781,7 +838,13 @@ function Chat() {
 
             <div className="mb-6 text-center">
               <p className={`text-sm ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>Вы вошли как</p>
-              <p className={`text-xl font-bold ${isLight ? 'text-black' : 'text-white'}`}>{username}</p>
+              <p className={`text-xl font-bold mb-3 ${isLight ? 'text-black' : 'text-white'}`}>{username}</p>
+              <button
+                onClick={handleLogout}
+                className="px-6 py-2 rounded-xl bg-red-600 text-white hover:bg-red-700 transition text-sm"
+              >
+                Выйти из аккаунта
+              </button>
             </div>
 
             <div className="mb-6">
@@ -798,15 +861,18 @@ function Chat() {
                   )}
                 </div>
                 <label 
-                  className="cursor-pointer text-white px-4 py-2 rounded-xl transition"
+                  className={`cursor-pointer text-white px-4 py-2 rounded-xl transition ${
+                    isUploadingAvatar ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                   style={{ backgroundColor: isLight ? '#333' : darkenColor(chatColor, 0.6) }}
                 >
-                  Изменить
+                  {isUploadingAvatar ? 'Загрузка...' : 'Изменить'}
                   <input
                     type="file"
                     className="hidden"
                     accept="image/*"
                     onChange={handleAvatarChange}
+                    disabled={isUploadingAvatar}
                   />
                 </label>
               </div>
