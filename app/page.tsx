@@ -144,6 +144,7 @@ function Chat() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messageIds = useRef<Set<number>>(new Set());
 
+  // ===== СОХРАНЯЕМ ТЕКУЩИЙ ЧАТ В localStorage =====
   const saveCurrentChat = (chatId: number | null, chatUser: string) => {
     if (chatId) {
       localStorage.setItem('currentChatId', String(chatId));
@@ -154,15 +155,13 @@ function Chat() {
     }
   };
 
+  // ===== ПРИ ЗАГРУЗКЕ НЕ ВЫБИРАЕМ НИКАКОЙ ЧАТ =====
   useEffect(() => {
-    const savedChatId = localStorage.getItem('currentChatId');
-    const savedChatUser = localStorage.getItem('currentChatUser');
-    if (savedChatId && savedChatUser) {
-      const id = parseInt(savedChatId);
-      setCurrentChatId(id);
-      setCurrentChatUser(savedChatUser);
-      loadChatMessages(id);
-    }
+    // НЕ восстанавливаем чат, оставляем null
+    setCurrentChatId(null);
+    setCurrentChatUser('');
+    localStorage.removeItem('currentChatId');
+    localStorage.removeItem('currentChatUser');
   }, []);
 
   const loadChats = async () => {
@@ -230,7 +229,6 @@ function Chat() {
         setCurrentChatUser(otherUser);
         saveCurrentChat(chatId, otherUser);
         await loadChatMessages(chatId);
-        // На телефоне закрываем шторку
         if (window.innerWidth < 768) setIsChatListOpen(false);
       } else {
         const error = await res.json();
@@ -247,7 +245,6 @@ function Chat() {
     setCurrentChatUser(otherUser);
     saveCurrentChat(chatId, otherUser);
     loadChatMessages(chatId);
-    // На телефоне закрываем шторку
     if (window.innerWidth < 768) setIsChatListOpen(false);
   };
 
@@ -429,12 +426,12 @@ function Chat() {
   };
 
   return (
-    <div className="h-dvh flex bg-[#1c1515]">
-      {/* Шторка с чатами */}
+    <div className="h-dvh flex bg-[#1c1515] relative">
+      {/* Шторка с чатами - на телефоне на весь экран */}
       <div
-        className={`w-80 flex-shrink-0 h-full bg-[#1c1515] border-r border-white/10 flex flex-col transition-transform duration-300 ${
+        className={`absolute inset-0 md:relative md:inset-auto z-20 h-full bg-[#1c1515] border-r border-white/10 flex flex-col transition-transform duration-300 ${
           isChatListOpen ? 'translate-x-0' : '-translate-x-full'
-        } md:translate-x-0 absolute md:relative z-20`}
+        } md:translate-x-0 md:w-80 md:flex-shrink-0`}
       >
         <div className="p-4 border-b border-white/10">
           <div className="relative">
