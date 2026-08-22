@@ -204,20 +204,34 @@ function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messageIds = useRef<Set<number>>(new Set());
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
 
   useEffect(() => {
     const savedUsername = localStorage.getItem('chat_username') || '';
     const savedColor = localStorage.getItem('chatColor') || '#ffffff';
+    const savedChatId = localStorage.getItem('currentChatId');
+    const savedChatUser = localStorage.getItem('currentChatUser');
+    
     setUsername(savedUsername);
     setChatColor(savedColor);
+    
+    if (savedChatId && savedChatUser) {
+      setCurrentChatId(Number(savedChatId));
+      setCurrentChatUser(savedChatUser);
+      loadChatMessages(Number(savedChatId));
+    }
+    
+    loadChats();
+    loadAvatar();
   }, []);
 
   useEffect(() => {
-    setCurrentChatId(null);
-    setCurrentChatUser('');
-    localStorage.removeItem('currentChatId');
-    localStorage.removeItem('currentChatUser');
-  }, []);
+    if (username) {
+      loadAvatar();
+      loadChats();
+    }
+  }, [username]);
 
   const loadChats = async () => {
     if (!username) return;
@@ -239,6 +253,7 @@ function Chat() {
         const data = await res.json();
         setChatMessages(data);
         messageIds.current = new Set(data.map((m: any) => m.id));
+        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'auto' }), 100);
       }
     } catch (error) {
       console.error('Ошибка загрузки сообщений:', error);
@@ -409,10 +424,7 @@ function Chat() {
       if (res.ok) {
         const data = await res.json();
         
-        // Мгновенно обновляем аватарку в интерфейсе
         setAvatarUrl(data.avatarUrl);
-        
-        // Обновляем сообщения в текущем чате
         setChatMessages((prev) =>
           prev.map((msg) =>
             msg.username === username
@@ -420,23 +432,13 @@ function Chat() {
               : msg
           )
         );
-        
-        // Обновляем список чатов
         setChats((prev) =>
           prev.map((chat) => ({
             ...chat,
             otherUserAvatar: chat.otherUser === username ? data.avatarUrl : chat.otherUserAvatar,
           }))
         );
-        
-        // Перезагружаем чаты для получения актуальных данных
         await loadChats();
-        
-        // Отправляем обновление через Supabase Realtime
-        await supabase
-          .from('users')
-          .update({ avatar_url: data.avatarUrl })
-          .eq('username', username);
       } else {
         alert('Ошибка загрузки аватарки');
       }
@@ -447,14 +449,7 @@ function Chat() {
     }
   };
 
-  useEffect(() => {
-    if (username) {
-      loadAvatar();
-      loadChats();
-    }
-  }, [username]);
-
-  // Подписка на изменения профилей для实时 обновления аватарок
+  // Подписка на изменения профилей
   useEffect(() => {
     if (!username) return;
 
@@ -465,7 +460,6 @@ function Chat() {
         (payload) => {
           const updatedUser = payload.new;
           
-          // Обновляем аватарки в списке чатов
           setChats((prev) =>
             prev.map((chat) => {
               if (chat.user1 === updatedUser.username || chat.user2 === updatedUser.username) {
@@ -478,7 +472,6 @@ function Chat() {
             })
           );
           
-          // Обновляем аватарки в сообщениях текущего чата
           setChatMessages((prev) =>
             prev.map((msg) =>
               msg.username === updatedUser.username
@@ -487,7 +480,6 @@ function Chat() {
             )
           );
           
-          // Если обновился текущий пользователь, обновляем его аватар
           if (updatedUser.username === username) {
             setAvatarUrl(updatedUser.avatar_url);
           }
@@ -500,6 +492,7 @@ function Chat() {
     };
   }, [username]);
 
+  // Подписка на новые сообщения
   useEffect(() => {
     if (!currentChatId) return;
 
@@ -531,6 +524,29 @@ function Chat() {
       subscription.unsubscribe();
     };
   }, [currentChatId]);
+
+  // Обработка свайпа
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartX.current !== null && touchEndX.current !== null) {
+      const diff = touchStartX.current - touchEndX.current;
+      if (diff > 50) {
+        setIsChatListOpen(true);
+      }
+      if (diff < -50) {
+        setIsChatListOpen(false);
+      }
+    }
+    touchStartX.current = null;
+    touchEndX.current = null;
+  };
 
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   const handleScroll = () => {
@@ -582,8 +598,25 @@ function Chat() {
     window.location.reload();
   };
 
+  // Получаем аватарку текущего собеседника из списка чатов
+  const getCurrentChatAvatar = () => {
+    const currentChat = chats.find(chat => 
+      (chat.user1 === username && chat.user2 === currentChatUser) ||
+      (chat.user2 === username && chat.user1 === currentChatUser)
+    );
+    return currentChat?.otherUserAvatar || null;
+  };
+
+  const currentChatAvatar = getCurrentChatAvatar();
+
   return (
-    <div className="h-dvh flex overflow-hidden relative transition-colors duration-300" style={{ backgroundColor: chatColor }}>
+    <div 
+      className="h-dvh flex overflow-hidden relative transition-colors duration-300"
+      style={{ backgroundColor: chatColor }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       {/* Шторка с чатами */}
       <div
         className={`absolute inset-0 z-30 flex flex-col transition-transform duration-300 ease-in-out ${
@@ -592,7 +625,16 @@ function Chat() {
         style={{ backgroundColor: isLight ? '#f0f0f0' : darkenColor(chatColor, 0.9) }}
       >
         <div className="p-4 flex items-center justify-between">
-          <span className={`font-bold text-lg ${isLight ? 'text-black' : 'text-white'}`}>Чаты</span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+              className={`transition p-1 text-xl ${isLight ? 'text-gray-600' : 'text-gray-400'} hover:opacity-70`}
+              title="Настройки"
+            >
+              ⚙️
+            </button>
+            <span className={`font-bold text-lg ${isLight ? 'text-black' : 'text-white'}`}>Чаты</span>
+          </div>
           <button
             onClick={() => setIsChatListOpen(false)}
             className={`md:hidden ${isLight ? 'text-gray-600' : 'text-gray-400'} hover:opacity-70 transition`}
@@ -690,6 +732,14 @@ function Chat() {
         </div>
       </div>
 
+      {/* Затемнение при открытом списке чатов на мобильных */}
+      {isChatListOpen && typeof window !== 'undefined' && window.innerWidth < 768 && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-20 md:hidden"
+          onClick={() => setIsChatListOpen(false)}
+        />
+      )}
+
       {/* Основная область чата */}
       <div className="flex-1 flex flex-col overflow-hidden relative transition-colors duration-300" style={{ backgroundColor: chatColor }}>
         <header 
@@ -703,28 +753,41 @@ function Chat() {
             >
               ☰
             </button>
-            <span className={`font-medium ${isLight ? 'text-black' : 'text-white'}`}>
-              {currentChatId ? `Чат с ${currentChatUser}` : 'Выберите чат'}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className={`text-sm hidden sm:block ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>
-              {username}
-            </span>
-            <button
-              onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-              className={`transition p-1 text-xl ${isLight ? 'text-gray-600' : 'text-gray-400'} hover:opacity-70`}
-              title="Настройки"
-            >
-              ⚙️
-            </button>
+            {currentChatId && (
+              <>
+                <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+                  {currentChatAvatar ? (
+                    <img
+                      src={currentChatAvatar}
+                      alt="Avatar"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div
+                      className="w-full h-full flex items-center justify-center text-white font-bold"
+                      style={{ backgroundColor: getAvatarColor(currentChatUser) }}
+                    >
+                      {currentChatUser.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+                <span className={`font-medium ${isLight ? 'text-black' : 'text-white'}`}>
+                  {currentChatUser}
+                </span>
+              </>
+            )}
+            {!currentChatId && (
+              <span className={`font-medium ${isLight ? 'text-black' : 'text-white'}`}>
+                Выберите чат
+              </span>
+            )}
           </div>
         </header>
 
         <div ref={messagesContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-4">
           {!currentChatId && (
             <div className={`text-center mt-20 ${isLight ? 'text-gray-600' : 'text-gray-500'}`}>
-              👈 Выбери чат или найди друга по нику
+              👈 Свайпни влево или выбери чат
             </div>
           )}
           {currentChatId && chatMessages.length === 0 && (
