@@ -230,6 +230,7 @@ function Chat() {
         setCurrentChatUser(otherUser);
         saveCurrentChat(chatId, otherUser);
         await loadChatMessages(chatId);
+        // На телефоне закрываем шторку
         if (window.innerWidth < 768) setIsChatListOpen(false);
       } else {
         const error = await res.json();
@@ -246,6 +247,7 @@ function Chat() {
     setCurrentChatUser(otherUser);
     saveCurrentChat(chatId, otherUser);
     loadChatMessages(chatId);
+    // На телефоне закрываем шторку
     if (window.innerWidth < 768) setIsChatListOpen(false);
   };
 
@@ -428,17 +430,22 @@ function Chat() {
 
   return (
     <div className="h-dvh flex bg-[#1c1515]">
-      {/* Шторка с чатами (фиксированная ширина) */}
-      <div className={`w-80 flex-shrink-0 h-full bg-[#1c1515] border-r border-white/10 flex flex-col transition-transform duration-300 ${
-        isChatListOpen ? 'translate-x-0' : '-translate-x-full'
-      } md:translate-x-0 absolute md:relative z-20`}>
+      {/* Шторка с чатами */}
+      <div
+        className={`w-80 flex-shrink-0 h-full bg-[#1c1515] border-r border-white/10 flex flex-col transition-transform duration-300 ${
+          isChatListOpen ? 'translate-x-0' : '-translate-x-full'
+        } md:translate-x-0 absolute md:relative z-20`}
+      >
         <div className="p-4 border-b border-white/10">
           <div className="relative">
             <input
               type="text"
               placeholder="Поиск по нику..."
               value={search}
-              onChange={(e) => { setSearch(e.target.value); searchUsers(e.target.value); }}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                searchUsers(e.target.value);
+              }}
               className="w-full p-2 rounded-xl bg-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-red-950 text-sm"
             />
             {searchResults.length > 0 && (
@@ -476,9 +483,16 @@ function Chat() {
               >
                 <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
                   {chat.otherUserAvatar ? (
-                    <img src={chat.otherUserAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                    <img
+                      src={chat.otherUserAvatar}
+                      alt="Avatar"
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: getAvatarColor(otherUser) }}>
+                    <div
+                      className="w-full h-full flex items-center justify-center text-white font-bold text-sm"
+                      style={{ backgroundColor: getAvatarColor(otherUser) }}
+                    >
                       {otherUser.charAt(0).toUpperCase()}
                     </div>
                   )}
@@ -487,7 +501,8 @@ function Chat() {
                   <span className="text-white font-medium text-sm block">{otherUser}</span>
                   {chat.lastMessage && (
                     <span className="text-gray-400 text-xs block truncate max-w-[120px]">
-                      {chat.username === username ? 'Вы: ' : ''}{chat.lastMessage}
+                      {chat.username === username ? 'Вы: ' : ''}
+                      {chat.lastMessage}
                     </span>
                   )}
                 </div>
@@ -497,7 +512,7 @@ function Chat() {
         </div>
       </div>
 
-      {/* Основная область чата (на всю ширину) */}
+      {/* Основная область чата */}
       <div className="flex-1 flex flex-col overflow-hidden relative" style={{ backgroundColor: chatColor }}>
         <header className="bg-[#1c1515] p-4 flex justify-between items-center border-b border-white/10 flex-shrink-0">
           <div className="flex items-center gap-3">
@@ -545,7 +560,9 @@ function Chat() {
               return (
                 <div
                   key={msg.id}
-                  className={`slide-up flex items-start gap-2 mb-3 ${isMyMessage ? 'flex-row-reverse' : ''}`}
+                  className={`slide-up flex items-start gap-2 mb-3 ${
+                    isMyMessage ? 'flex-row-reverse' : ''
+                  }`}
                 >
                   <div
                     className={`inline-block px-4 py-2 rounded-2xl max-w-[80%] ${
@@ -642,7 +659,12 @@ function Chat() {
                 </div>
                 <label className="cursor-pointer bg-red-950 text-white px-4 py-2 rounded-xl hover:bg-red-900 transition">
                   Изменить
-                  <input type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} />
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                  />
                 </label>
               </div>
             </div>
