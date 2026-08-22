@@ -537,10 +537,12 @@ function Chat() {
   const handleTouchEnd = () => {
     if (touchStartX.current !== null && touchEndX.current !== null) {
       const diff = touchStartX.current - touchEndX.current;
-      if (diff > 50) {
+      // Свайп вправо (палец движется вправо) - открываем чаты
+      if (diff < -50) {
         setIsChatListOpen(true);
       }
-      if (diff < -50) {
+      // Свайп влево (палец движется влево) - закрываем чаты
+      if (diff > 50) {
         setIsChatListOpen(false);
       }
     }
@@ -635,12 +637,6 @@ function Chat() {
             </button>
             <span className={`font-bold text-lg ${isLight ? 'text-black' : 'text-white'}`}>Чаты</span>
           </div>
-          <button
-            onClick={() => setIsChatListOpen(false)}
-            className={`md:hidden ${isLight ? 'text-gray-600' : 'text-gray-400'} hover:opacity-70 transition`}
-          >
-            ✕
-          </button>
         </div>
         <div className="px-4 pb-4">
           <div className="relative">
@@ -787,7 +783,7 @@ function Chat() {
         <div ref={messagesContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-4">
           {!currentChatId && (
             <div className={`text-center mt-20 ${isLight ? 'text-gray-600' : 'text-gray-500'}`}>
-              👈 Свайпни влево или выбери чат
+              👈 Свайпни вправо или выбери чат
             </div>
           )}
           {currentChatId && chatMessages.length === 0 && (
