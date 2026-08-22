@@ -9,8 +9,13 @@ export default function Home() {
   const [isLogin, setIsLogin] = useState(true);
   const [isAuth, setIsAuth] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [themeColor, setThemeColor] = useState('#ffffff');
 
   useEffect(() => {
+    // Загружаем сохраненную тему
+    const savedColor = localStorage.getItem('chatColor') || '#ffffff';
+    setThemeColor(savedColor);
+    
     const checkAuth = async () => {
       const saved = localStorage.getItem('chat_username');
       if (saved) {
@@ -35,6 +40,20 @@ export default function Home() {
     };
     checkAuth();
   }, []);
+
+  // Функция для определения, является ли цвет светлым
+  const isLightColor = (color: string) => {
+    if (color === '#ffffff' || color === '#FFFFFF' || color === 'white') return true;
+    
+    let r = parseInt(color.slice(1, 3), 16);
+    let g = parseInt(color.slice(3, 5), 16);
+    let b = parseInt(color.slice(5, 7), 16);
+    
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    return brightness > 150;
+  };
+
+  const isLight = isLightColor(themeColor);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,7 +89,13 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="h-dvh bg-[#1c1515] flex items-center justify-center text-white">
+      <div 
+        className="h-dvh flex items-center justify-center transition-colors duration-300"
+        style={{ 
+          backgroundColor: themeColor,
+          color: isLight ? '#000000' : '#ffffff'
+        }}
+      >
         Загрузка...
       </div>
     );
@@ -81,9 +106,20 @@ export default function Home() {
   }
 
   return (
-    <div className="h-dvh flex items-center justify-center bg-[#1c1515] px-4 relative overflow-hidden">
-      <form onSubmit={handleSubmit} className="bg-[#1c1515] p-6 sm:p-8 rounded-2xl w-full max-w-sm z-10 border border-white/10">
-        <h2 className="text-white text-2xl mb-4">
+    <div 
+      className="h-dvh flex items-center justify-center px-4 relative overflow-hidden transition-colors duration-300"
+      style={{ backgroundColor: themeColor }}
+    >
+      <form 
+        onSubmit={handleSubmit} 
+        className={`p-6 sm:p-8 rounded-2xl w-full max-w-sm z-10 border shadow-lg transition-colors duration-300 ${
+          isLight 
+            ? 'bg-white border-gray-300' 
+            : 'bg-black/20 border-white/20'
+        }`}
+        style={!isLight ? { backgroundColor: themeColor } : {}}
+      >
+        <h2 className={`text-2xl mb-4 ${isLight ? 'text-black' : 'text-white'}`}>
           {isLogin ? 'Вход' : 'Регистрация'}
         </h2>
         <div className="mb-2">
@@ -92,9 +128,15 @@ export default function Home() {
             placeholder="Логин"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full p-2 rounded-xl bg-white/10 text-white placeholder-gray-400"
+            className={`w-full p-2 rounded-xl border focus:outline-none focus:ring-1 transition-colors duration-300 ${
+              isLight 
+                ? 'bg-gray-100 text-black placeholder-gray-500 border-gray-300 focus:ring-gray-400' 
+                : 'bg-white/10 text-white placeholder-gray-400 border-white/20 focus:ring-white/30'
+            }`}
           />
-          <p className="text-xs text-gray-500 mt-1">🔹 От 5 символов, придумай ник и пароль, и войди в чат!</p>
+          <p className={`text-xs mt-1 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>
+            🔹 От 5 символов, придумай ник и пароль, и войди в чат!
+          </p>
         </div>
         <div className="mb-4">
           <input
@@ -102,17 +144,37 @@ export default function Home() {
             placeholder="Пароль"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full p-2 rounded-xl bg-white/10 text-white placeholder-gray-400"
+            className={`w-full p-2 rounded-xl border focus:outline-none focus:ring-1 transition-colors duration-300 ${
+              isLight 
+                ? 'bg-gray-100 text-black placeholder-gray-500 border-gray-300 focus:ring-gray-400' 
+                : 'bg-white/10 text-white placeholder-gray-400 border-white/20 focus:ring-white/30'
+            }`}
           />
-          <p className="text-xs text-gray-500 mt-1">🔹 От 5 символов</p>
+          <p className={`text-xs mt-1 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>
+            🔹 От 5 символов
+          </p>
         </div>
-        <button type="submit" className="w-full bg-red-950 text-white p-2 rounded-xl hover:bg-red-900 transition">
+        <button 
+          type="submit" 
+          className={`w-full p-2 rounded-xl transition ${
+            isLight 
+              ? 'bg-gray-800 text-white hover:bg-gray-700' 
+              : 'bg-white/20 text-white hover:bg-white/30'
+          }`}
+        >
           {isLogin ? 'Войти' : 'Зарегистрироваться'}
         </button>
-        <p className="text-gray-500 text-xs text-center mt-6 border-t border-white/10 pt-4">
+        <p className={`text-xs text-center mt-6 border-t pt-4 transition-colors duration-300 ${
+          isLight ? 'text-gray-600 border-gray-300' : 'text-gray-400 border-white/20'
+        }`}>
           🔒 Анонимный чат · Только логин и пароль - и ты в чате!
         </p>
-        <p onClick={() => setIsLogin(!isLogin)} className="text-gray-400 text-sm mt-3 text-center cursor-pointer hover:underline">
+        <p 
+          onClick={() => setIsLogin(!isLogin)} 
+          className={`text-sm mt-3 text-center cursor-pointer hover:underline transition-colors duration-300 ${
+            isLight ? 'text-gray-600' : 'text-gray-400'
+          }`}
+        >
           {isLogin ? 'Нет аккаунта? Зарегистрируйся' : 'Уже есть аккаунт? Войди'}
         </p>
       </form>
@@ -122,11 +184,11 @@ export default function Home() {
 
 function Chat() {
   const [text, setText] = useState('');
-  const username = localStorage.getItem('chat_username') || '';
+  const [username, setUsername] = useState('');
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [replyTo, setReplyTo] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [chatColor, setChatColor] = useState('#1c1515');
+  const [chatColor, setChatColor] = useState('#ffffff');
   const [isSending, setIsSending] = useState(false);
 
   const [chats, setChats] = useState<any[]>([]);
@@ -144,6 +206,14 @@ function Chat() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messageIds = useRef<Set<number>>(new Set());
 
+  // Получаем username и цвет из localStorage при монтировании
+  useEffect(() => {
+    const savedUsername = localStorage.getItem('chat_username') || '';
+    const savedColor = localStorage.getItem('chatColor') || '#ffffff';
+    setUsername(savedUsername);
+    setChatColor(savedColor);
+  }, []);
+
   // При загрузке не выбираем чат
   useEffect(() => {
     setCurrentChatId(null);
@@ -153,6 +223,7 @@ function Chat() {
   }, []);
 
   const loadChats = async () => {
+    if (!username) return;
     try {
       const res = await fetch(`/api/chats?username=${username}`);
       if (res.ok) {
@@ -309,6 +380,7 @@ function Chat() {
   };
 
   const loadAvatar = async () => {
+    if (!username) return;
     try {
       const res = await fetch(`/api/profile?username=${username}`);
       if (res.ok) {
@@ -361,8 +433,11 @@ function Chat() {
   };
 
   useEffect(() => {
-    loadAvatar();
-  }, []);
+    if (username) {
+      loadAvatar();
+      loadChats();
+    }
+  }, [username]);
 
   useEffect(() => {
     if (!currentChatId) return;
@@ -396,12 +471,6 @@ function Chat() {
     };
   }, [currentChatId]);
 
-  useEffect(() => {
-    const savedColor = localStorage.getItem('chatColor');
-    if (savedColor) setChatColor(savedColor);
-    loadChats();
-  }, []);
-
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   const handleScroll = () => {
     if (!messagesContainerRef.current) return;
@@ -415,24 +484,57 @@ function Chat() {
     return colors[name.charCodeAt(0) % colors.length];
   };
 
+  // Функция для затемнения цвета
+  const darkenColor = (color: string, amount: number = 0.7) => {
+    if (color === '#ffffff' || color === '#FFFFFF' || color === 'white') {
+      const grayValue = Math.floor(255 * amount);
+      return `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
+    }
+    
+    let r = parseInt(color.slice(1, 3), 16);
+    let g = parseInt(color.slice(3, 5), 16);
+    let b = parseInt(color.slice(5, 7), 16);
+    
+    r = Math.floor(r * amount);
+    g = Math.floor(g * amount);
+    b = Math.floor(b * amount);
+    
+    return `rgb(${r}, ${g}, ${b})`;
+  };
+
+  // Функция для определения, является ли цвет светлым
+  const isLightColor = (color: string) => {
+    if (color === '#ffffff' || color === '#FFFFFF' || color === 'white') return true;
+    
+    let r = parseInt(color.slice(1, 3), 16);
+    let g = parseInt(color.slice(3, 5), 16);
+    let b = parseInt(color.slice(5, 7), 16);
+    
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    return brightness > 150;
+  };
+
+  const isLight = isLightColor(chatColor);
+
   return (
-    <div className="h-dvh flex bg-[#1c1515] overflow-hidden relative">
-      {/* Шторка с чатами - на телефоне на весь экран */}
+    <div className="h-dvh flex overflow-hidden relative transition-colors duration-300" style={{ backgroundColor: chatColor }}>
+      {/* Шторка с чатами */}
       <div
-        className={`absolute inset-0 z-30 bg-[#1c1515] flex flex-col transition-transform duration-300 ease-in-out ${
+        className={`absolute inset-0 z-30 flex flex-col transition-transform duration-300 ease-in-out ${
           isChatListOpen ? 'translate-x-0' : '-translate-x-full'
-        } md:relative md:translate-x-0 md:w-80 md:flex-shrink-0 md:z-auto`}
+        } md:relative md:translate-x-0 md:w-1/4 md:min-w-[280px] md:max-w-[400px] md:flex-shrink-0 md:z-auto`}
+        style={{ backgroundColor: isLight ? '#f0f0f0' : darkenColor(chatColor, 0.9) }}
       >
-        <div className="p-4 border-b border-white/10 flex items-center justify-between">
-          <span className="text-white font-bold text-lg">Чаты</span>
+        <div className="p-4 flex items-center justify-between">
+          <span className={`font-bold text-lg ${isLight ? 'text-black' : 'text-white'}`}>Чаты</span>
           <button
             onClick={() => setIsChatListOpen(false)}
-            className="md:hidden text-gray-400 hover:text-white transition"
+            className={`md:hidden ${isLight ? 'text-gray-600' : 'text-gray-400'} hover:opacity-70 transition`}
           >
             ✕
           </button>
         </div>
-        <div className="p-4 border-b border-white/10">
+        <div className="px-4 pb-4">
           <div className="relative">
             <input
               type="text"
@@ -442,20 +544,28 @@ function Chat() {
                 setSearch(e.target.value);
                 searchUsers(e.target.value);
               }}
-              className="w-full p-2 rounded-xl bg-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-red-950 text-sm"
+              className={`w-full p-2 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-gray-400 ${
+                isLight 
+                  ? 'bg-gray-200 text-black placeholder-gray-500' 
+                  : 'bg-white/10 text-white placeholder-gray-400 focus:ring-white/30'
+              }`}
             />
             {searchResults.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-[#1c1515] border border-white/10 rounded-xl overflow-hidden z-30">
+              <div className={`absolute top-full left-0 right-0 mt-1 border rounded-xl overflow-hidden z-30 ${
+                isLight ? 'bg-white border-gray-300' : 'bg-black/50 border-white/10'
+              }`}>
                 {searchResults.map((user) => (
                   <button
                     key={user.username}
                     onClick={() => createChat(user.username)}
-                    className="w-full flex items-center gap-3 p-3 hover:bg-white/5 transition text-left"
+                    className={`w-full flex items-center gap-3 p-3 transition text-left ${
+                      isLight ? 'hover:bg-gray-100' : 'hover:bg-white/5'
+                    }`}
                   >
-                    <div className="w-8 h-8 rounded-full bg-red-950 flex items-center justify-center text-white font-bold text-xs">
+                    <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-white font-bold text-xs">
                       {user.username.charAt(0).toUpperCase()}
                     </div>
-                    <span className="text-white text-sm">{user.username}</span>
+                    <span className={`text-sm ${isLight ? 'text-black' : 'text-white'}`}>{user.username}</span>
                   </button>
                 ))}
               </div>
@@ -465,7 +575,9 @@ function Chat() {
 
         <div className="flex-1 overflow-y-auto p-2">
           {chats.length === 0 && (
-            <div className="text-gray-500 text-center text-sm mt-10">Нет чатов. Найди друга по нику!</div>
+            <div className={`text-center text-sm mt-10 ${isLight ? 'text-gray-600' : 'text-gray-500'}`}>
+              Нет чатов. Найди друга по нику!
+            </div>
           )}
           {chats.map((chat) => {
             const otherUser = chat.user1 === username ? chat.user2 : chat.user1;
@@ -474,7 +586,9 @@ function Chat() {
                 key={chat.id}
                 onClick={() => selectChat(chat.id, otherUser)}
                 className={`w-full flex items-center gap-3 p-3 rounded-xl transition ${
-                  currentChatId === chat.id ? 'bg-white/10' : 'hover:bg-white/5'
+                  currentChatId === chat.id 
+                    ? (isLight ? 'bg-gray-300' : 'bg-white/10')
+                    : (isLight ? 'hover:bg-gray-200' : 'hover:bg-white/5')
                 }`}
               >
                 <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
@@ -494,9 +608,11 @@ function Chat() {
                   )}
                 </div>
                 <div className="flex-1 text-left">
-                  <span className="text-white font-medium text-sm block">{otherUser}</span>
+                  <span className={`font-medium text-sm block ${isLight ? 'text-black' : 'text-white'}`}>
+                    {otherUser}
+                  </span>
                   {chat.lastMessage && (
-                    <span className="text-gray-400 text-xs block truncate max-w-[120px]">
+                    <span className={`text-xs block truncate max-w-[120px] ${isLight ? 'text-gray-700' : 'text-gray-400'}`}>
                       {chat.username === username ? 'Вы: ' : ''}
                       {chat.lastMessage}
                     </span>
@@ -509,24 +625,29 @@ function Chat() {
       </div>
 
       {/* Основная область чата */}
-      <div className="flex-1 flex flex-col overflow-hidden relative" style={{ backgroundColor: chatColor }}>
-        <header className="bg-[#1c1515] p-4 flex justify-between items-center border-b border-white/10 flex-shrink-0">
+      <div className="flex-1 flex flex-col overflow-hidden relative transition-colors duration-300" style={{ backgroundColor: chatColor }}>
+        <header 
+          className="p-4 flex justify-between items-center flex-shrink-0" 
+          style={{ backgroundColor: isLight ? '#e0e0e0' : darkenColor(chatColor, 0.85) }}
+        >
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsChatListOpen(!isChatListOpen)}
-              className="md:hidden text-gray-400 hover:text-white transition"
+              className={`md:hidden ${isLight ? 'text-gray-600' : 'text-gray-400'} hover:opacity-70 transition`}
             >
               ☰
             </button>
-            <span className="text-white font-medium">
+            <span className={`font-medium ${isLight ? 'text-black' : 'text-white'}`}>
               {currentChatId ? `Чат с ${currentChatUser}` : 'Выберите чат'}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-gray-300 text-sm hidden sm:block">{username}</span>
+            <span className={`text-sm hidden sm:block ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>
+              {username}
+            </span>
             <button
               onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-              className="text-gray-400 hover:text-white transition p-1 text-xl"
+              className={`transition p-1 text-xl ${isLight ? 'text-gray-600' : 'text-gray-400'} hover:opacity-70`}
               title="Настройки"
             >
               ⚙️
@@ -536,7 +657,7 @@ function Chat() {
                 localStorage.removeItem('chat_username');
                 window.location.reload();
               }}
-              className="text-sm text-gray-400 hover:text-white transition"
+              className={`text-sm transition ${isLight ? 'text-gray-600' : 'text-gray-400'} hover:opacity-70`}
             >
               Выйти
             </button>
@@ -545,10 +666,14 @@ function Chat() {
 
         <div ref={messagesContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-4">
           {!currentChatId && (
-            <div className="text-gray-500 text-center mt-20">👈 Выбери чат или найди друга по нику</div>
+            <div className={`text-center mt-20 ${isLight ? 'text-gray-600' : 'text-gray-500'}`}>
+              👈 Выбери чат или найди друга по нику
+            </div>
           )}
           {currentChatId && chatMessages.length === 0 && (
-            <div className="text-gray-500 text-center mt-20">Сообщений пока нет</div>
+            <div className={`text-center mt-20 ${isLight ? 'text-gray-600' : 'text-gray-500'}`}>
+              Сообщений пока нет
+            </div>
           )}
           {currentChatId &&
             chatMessages.map((msg: any) => {
@@ -562,8 +687,11 @@ function Chat() {
                 >
                   <div
                     className={`inline-block px-4 py-2 rounded-2xl max-w-[80%] ${
-                      isMyMessage ? 'bg-red-950 text-white' : 'bg-white/10 text-gray-200'
+                      isMyMessage 
+                        ? (isLight ? 'bg-gray-800 text-white' : 'text-white')
+                        : (isLight ? 'bg-gray-200 text-black' : 'bg-white/10 text-gray-200')
                     }`}
+                    style={isMyMessage && !isLight ? { backgroundColor: darkenColor(chatColor, 0.6) } : {}}
                   >
                     {msg.type === 'image' && (
                       <img src={msg.text} alt="Фото" className="max-w-[250px] rounded-xl" />
@@ -581,9 +709,10 @@ function Chat() {
         {currentChatId && (
           <form
             onSubmit={sendMessage}
-            className="p-4 bg-[#1c1515] flex gap-2 border-t border-white/10 items-center flex-shrink-0 rounded-2xl"
+            className="p-4 flex gap-2 items-center flex-shrink-0"
+            style={{ backgroundColor: isLight ? '#e0e0e0' : darkenColor(chatColor, 0.85) }}
           >
-            <label className="cursor-pointer text-gray-400 hover:text-white transition shrink-0">
+            <label className={`cursor-pointer transition shrink-0 ${isLight ? 'text-gray-600' : 'text-gray-400'} hover:opacity-70`}>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-6 w-6"
@@ -611,12 +740,19 @@ function Chat() {
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder="Введите сообщение..."
-              className="flex-1 p-2 rounded-xl bg-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-red-950 min-w-0"
+              className={`flex-1 p-2 rounded-xl focus:outline-none focus:ring-1 focus:ring-gray-400 min-w-0 ${
+                isLight 
+                  ? 'bg-gray-200 text-black placeholder-gray-500' 
+                  : 'bg-white/10 text-white placeholder-gray-500 focus:ring-white/30'
+              }`}
             />
             <button
               type="submit"
               disabled={isSending}
-              className="bg-red-950 text-white px-4 py-2 rounded-xl hover:bg-red-900 transition shrink-0"
+              className={`px-4 py-2 rounded-xl transition shrink-0 ${
+                isLight ? 'bg-gray-800 text-white' : 'text-white'
+              }`}
+              style={!isLight ? { backgroundColor: darkenColor(chatColor, 0.6) } : {}}
             >
               {isSending ? 'Отправка...' : 'Отправить'}
             </button>
@@ -627,33 +763,44 @@ function Chat() {
       {/* Настройки */}
       {isSettingsOpen && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1c1515] border border-white/10 rounded-2xl max-w-md w-full p-6">
+          <div 
+            className={`border rounded-2xl max-w-md w-full p-6 ${
+              isLight ? 'bg-white border-gray-300' : 'border-white/10'
+            }`}
+            style={!isLight ? { backgroundColor: darkenColor(chatColor, 0.9) } : {}}
+          >
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-white text-xl font-bold">Настройки</h2>
+              <h2 className={`text-xl font-bold ${isLight ? 'text-black' : 'text-white'}`}>Настройки</h2>
               <button
                 onClick={() => setIsSettingsOpen(false)}
-                className="text-gray-400 hover:text-white transition"
+                className={`transition ${isLight ? 'text-gray-600' : 'text-gray-400'} hover:opacity-70`}
               >
                 ✕
               </button>
             </div>
 
             <div className="mb-6 text-center">
-              <p className="text-gray-400 text-sm">Вы вошли как</p>
-              <p className="text-white text-xl font-bold">{username}</p>
+              <p className={`text-sm ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>Вы вошли как</p>
+              <p className={`text-xl font-bold ${isLight ? 'text-black' : 'text-white'}`}>{username}</p>
             </div>
 
             <div className="mb-6">
-              <p className="text-gray-400 text-sm mb-2">Аватарка</p>
+              <p className={`text-sm mb-2 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>Аватарка</p>
               <div className="flex items-center gap-4">
-                <div className="w-20 h-20 rounded-full overflow-hidden bg-red-950 flex items-center justify-center text-white text-3xl font-bold">
+                <div 
+                  className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center text-white text-3xl font-bold"
+                  style={{ backgroundColor: isLight ? '#333' : darkenColor(chatColor, 0.6) }}
+                >
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
                     username.charAt(0).toUpperCase()
                   )}
                 </div>
-                <label className="cursor-pointer bg-red-950 text-white px-4 py-2 rounded-xl hover:bg-red-900 transition">
+                <label 
+                  className="cursor-pointer text-white px-4 py-2 rounded-xl transition"
+                  style={{ backgroundColor: isLight ? '#333' : darkenColor(chatColor, 0.6) }}
+                >
                   Изменить
                   <input
                     type="file"
@@ -666,9 +813,10 @@ function Chat() {
             </div>
 
             <div className="mb-6">
-              <p className="text-gray-400 text-sm mb-2">Фон чата</p>
+              <p className={`text-sm mb-2 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>Цветовая тема</p>
               <div className="flex flex-wrap gap-2">
                 {[
+                  '#ffffff',
                   '#1c1515',
                   '#1a1a2e',
                   '#16213e',
@@ -677,6 +825,10 @@ function Chat() {
                   '#2d4a2c',
                   '#4a2c4a',
                   '#2c4a4a',
+                  '#3d1f1f',
+                  '#1f3d1f',
+                  '#1f1f3d',
+                  '#3d3d1f',
                 ].map((color) => (
                   <button
                     key={color}
@@ -685,7 +837,9 @@ function Chat() {
                       localStorage.setItem('chatColor', color);
                     }}
                     className={`w-10 h-10 rounded-full border-2 transition ${
-                      chatColor === color ? 'border-white' : 'border-transparent'
+                      chatColor === color 
+                        ? (isLight ? 'border-gray-800' : 'border-white') 
+                        : 'border-transparent'
                     }`}
                     style={{ backgroundColor: color }}
                   />
@@ -695,7 +849,10 @@ function Chat() {
 
             <button
               onClick={() => setIsSettingsOpen(false)}
-              className="w-full bg-red-950 text-white py-2 rounded-xl hover:bg-red-900 transition"
+              className={`w-full py-2 rounded-xl transition ${
+                isLight ? 'bg-gray-800 text-white' : 'text-white'
+              }`}
+              style={!isLight ? { backgroundColor: darkenColor(chatColor, 0.6) } : {}}
             >
               Закрыть
             </button>
