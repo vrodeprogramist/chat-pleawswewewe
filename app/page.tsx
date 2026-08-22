@@ -144,7 +144,6 @@ function Chat() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messageIds = useRef<Set<number>>(new Set());
 
-  // ========== СОХРАНЯЕМ ТЕКУЩИЙ ЧАТ В localStorage ==========
   const saveCurrentChat = (chatId: number | null, chatUser: string) => {
     if (chatId) {
       localStorage.setItem('currentChatId', String(chatId));
@@ -155,7 +154,6 @@ function Chat() {
     }
   };
 
-  // ========== ВОССТАНАВЛИВАЕМ ЧАТ ПРИ ЗАГРУЗКЕ ==========
   useEffect(() => {
     const savedChatId = localStorage.getItem('currentChatId');
     const savedChatUser = localStorage.getItem('currentChatUser');
@@ -429,75 +427,84 @@ function Chat() {
   };
 
   return (
-    <div className="h-dvh flex bg-[#1c1515] relative">
-      <div className={`absolute md:relative z-20 h-full transition-transform duration-300 ${isChatListOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
-        <div className="w-80 h-full bg-[#1c1515] border-r border-white/10 flex flex-col">
-          <div className="p-4 border-b border-white/10">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Поиск по нику..."
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); searchUsers(e.target.value); }}
-                className="w-full p-2 rounded-xl bg-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-red-950 text-sm"
-              />
-              {searchResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-[#1c1515] border border-white/10 rounded-xl overflow-hidden z-30">
-                  {searchResults.map((user) => (
-                    <button
-                      key={user.username}
-                      onClick={() => createChat(user.username)}
-                      className="w-full flex items-center gap-3 p-3 hover:bg-white/5 transition text-left"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-red-950 flex items-center justify-center text-white font-bold text-xs">
-                        {user.username.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="text-white text-sm">{user.username}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+    <div className="h-dvh flex bg-[#1c1515]">
+      {/* Шторка с чатами (фиксированная ширина) */}
+      <div className={`w-80 flex-shrink-0 h-full bg-[#1c1515] border-r border-white/10 flex flex-col transition-transform duration-300 ${
+        isChatListOpen ? 'translate-x-0' : '-translate-x-full'
+      } md:translate-x-0 absolute md:relative z-20`}>
+        <div className="p-4 border-b border-white/10">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Поиск по нику..."
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); searchUsers(e.target.value); }}
+              className="w-full p-2 rounded-xl bg-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-red-950 text-sm"
+            />
+            {searchResults.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-[#1c1515] border border-white/10 rounded-xl overflow-hidden z-30">
+                {searchResults.map((user) => (
+                  <button
+                    key={user.username}
+                    onClick={() => createChat(user.username)}
+                    className="w-full flex items-center gap-3 p-3 hover:bg-white/5 transition text-left"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-red-950 flex items-center justify-center text-white font-bold text-xs">
+                      {user.username.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="text-white text-sm">{user.username}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+        </div>
 
-          <div className="flex-1 overflow-y-auto p-2">
-            {chats.length === 0 && <div className="text-gray-500 text-center text-sm mt-10">Нет чатов. Найди друга по нику!</div>}
-            {chats.map((chat) => {
-              const otherUser = chat.user1 === username ? chat.user2 : chat.user1;
-              return (
-                <button
-                  key={chat.id}
-                  onClick={() => selectChat(chat.id, otherUser)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl transition ${currentChatId === chat.id ? 'bg-white/10' : 'hover:bg-white/5'}`}
-                >
-                  <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
-                    {chat.otherUserAvatar ? (
-                      <img src={chat.otherUserAvatar} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: getAvatarColor(otherUser) }}>
-                        {otherUser.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 text-left">
-                    <span className="text-white font-medium text-sm block">{otherUser}</span>
-                    {chat.lastMessage && (
-                      <span className="text-gray-400 text-xs block truncate max-w-[120px]">
-                        {chat.username === username ? 'Вы: ' : ''}{chat.lastMessage}
-                      </span>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+        <div className="flex-1 overflow-y-auto p-2">
+          {chats.length === 0 && (
+            <div className="text-gray-500 text-center text-sm mt-10">Нет чатов. Найди друга по нику!</div>
+          )}
+          {chats.map((chat) => {
+            const otherUser = chat.user1 === username ? chat.user2 : chat.user1;
+            return (
+              <button
+                key={chat.id}
+                onClick={() => selectChat(chat.id, otherUser)}
+                className={`w-full flex items-center gap-3 p-3 rounded-xl transition ${
+                  currentChatId === chat.id ? 'bg-white/10' : 'hover:bg-white/5'
+                }`}
+              >
+                <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+                  {chat.otherUserAvatar ? (
+                    <img src={chat.otherUserAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: getAvatarColor(otherUser) }}>
+                      {otherUser.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 text-left">
+                  <span className="text-white font-medium text-sm block">{otherUser}</span>
+                  {chat.lastMessage && (
+                    <span className="text-gray-400 text-xs block truncate max-w-[120px]">
+                      {chat.username === username ? 'Вы: ' : ''}{chat.lastMessage}
+                    </span>
+                  )}
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
+      {/* Основная область чата (на всю ширину) */}
       <div className="flex-1 flex flex-col overflow-hidden relative" style={{ backgroundColor: chatColor }}>
         <header className="bg-[#1c1515] p-4 flex justify-between items-center border-b border-white/10 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <button onClick={() => setIsChatListOpen(!isChatListOpen)} className="md:hidden text-gray-400 hover:text-white transition">
+            <button
+              onClick={() => setIsChatListOpen(!isChatListOpen)}
+              className="md:hidden text-gray-400 hover:text-white transition"
+            >
               {isChatListOpen ? '✕' : '☰'}
             </button>
             <span className="text-white font-medium">
@@ -513,39 +520,78 @@ function Chat() {
             >
               ⚙️
             </button>
-            <button onClick={() => { localStorage.removeItem('chat_username'); window.location.reload(); }} className="text-sm text-gray-400 hover:text-white transition">
+            <button
+              onClick={() => {
+                localStorage.removeItem('chat_username');
+                window.location.reload();
+              }}
+              className="text-sm text-gray-400 hover:text-white transition"
+            >
               Выйти
             </button>
           </div>
         </header>
 
         <div ref={messagesContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-4">
-          {!currentChatId && <div className="text-gray-500 text-center mt-20">👈 Выбери чат или найди друга по нику</div>}
-          {currentChatId && chatMessages.length === 0 && <div className="text-gray-500 text-center mt-20">Сообщений пока нет</div>}
-          {currentChatId && chatMessages.map((msg: any) => {
-            const isMyMessage = msg.username === username;
-            return (
-              <div 
-                key={msg.id} 
-                className={`slide-up flex items-start gap-2 mb-3 ${isMyMessage ? 'flex-row-reverse' : ''}`}
-              >
-                <div className={`inline-block px-4 py-2 rounded-2xl max-w-[80%] ${isMyMessage ? 'bg-red-950 text-white' : 'bg-white/10 text-gray-200'}`}>
-                  {msg.type === 'image' && <img src={msg.text} alt="Фото" className="max-w-[250px] rounded-xl" />}
-                  {(!msg.type || msg.type === 'text') && <span className="break-words text-sm">{msg.text}</span>}
+          {!currentChatId && (
+            <div className="text-gray-500 text-center mt-20">👈 Выбери чат или найди друга по нику</div>
+          )}
+          {currentChatId && chatMessages.length === 0 && (
+            <div className="text-gray-500 text-center mt-20">Сообщений пока нет</div>
+          )}
+          {currentChatId &&
+            chatMessages.map((msg: any) => {
+              const isMyMessage = msg.username === username;
+              return (
+                <div
+                  key={msg.id}
+                  className={`slide-up flex items-start gap-2 mb-3 ${isMyMessage ? 'flex-row-reverse' : ''}`}
+                >
+                  <div
+                    className={`inline-block px-4 py-2 rounded-2xl max-w-[80%] ${
+                      isMyMessage ? 'bg-red-950 text-white' : 'bg-white/10 text-gray-200'
+                    }`}
+                  >
+                    {msg.type === 'image' && (
+                      <img src={msg.text} alt="Фото" className="max-w-[250px] rounded-xl" />
+                    )}
+                    {(!msg.type || msg.type === 'text') && (
+                      <span className="break-words text-sm">{msg.text}</span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
           <div ref={messagesEndRef} />
         </div>
 
         {currentChatId && (
-          <form onSubmit={sendMessage} className="p-4 bg-[#1c1515] flex gap-2 border-t border-white/10 items-center flex-shrink-0 rounded-2xl">
+          <form
+            onSubmit={sendMessage}
+            className="p-4 bg-[#1c1515] flex gap-2 border-t border-white/10 items-center flex-shrink-0 rounded-2xl"
+          >
             <label className="cursor-pointer text-gray-400 hover:text-white transition shrink-0">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
               </svg>
-              <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*,video/*" capture="environment" />
+              <input
+                type="file"
+                className="hidden"
+                onChange={handleFileUpload}
+                accept="image/*,video/*"
+                capture="environment"
+              />
             </label>
             <input
               type="text"
@@ -554,13 +600,18 @@ function Chat() {
               placeholder="Введите сообщение..."
               className="flex-1 p-2 rounded-xl bg-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-red-950 min-w-0"
             />
-            <button type="submit" disabled={isSending} className="bg-red-950 text-white px-4 py-2 rounded-xl hover:bg-red-900 transition shrink-0">
+            <button
+              type="submit"
+              disabled={isSending}
+              className="bg-red-950 text-white px-4 py-2 rounded-xl hover:bg-red-900 transition shrink-0"
+            >
               {isSending ? 'Отправка...' : 'Отправить'}
             </button>
           </form>
         )}
       </div>
 
+      {/* Настройки */}
       {isSettingsOpen && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-[#1c1515] border border-white/10 rounded-2xl max-w-md w-full p-6">
@@ -591,12 +642,7 @@ function Chat() {
                 </div>
                 <label className="cursor-pointer bg-red-950 text-white px-4 py-2 rounded-xl hover:bg-red-900 transition">
                   Изменить
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="image/*"
-                    onChange={handleAvatarChange}
-                  />
+                  <input type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} />
                 </label>
               </div>
             </div>
@@ -605,8 +651,14 @@ function Chat() {
               <p className="text-gray-400 text-sm mb-2">Фон чата</p>
               <div className="flex flex-wrap gap-2">
                 {[
-                  '#1c1515', '#1a1a2e', '#16213e', '#0f3460',
-                  '#4a2c2c', '#2d4a2c', '#4a2c4a', '#2c4a4a',
+                  '#1c1515',
+                  '#1a1a2e',
+                  '#16213e',
+                  '#0f3460',
+                  '#4a2c2c',
+                  '#2d4a2c',
+                  '#4a2c4a',
+                  '#2c4a4a',
                 ].map((color) => (
                   <button
                     key={color}
