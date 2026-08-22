@@ -36,16 +36,19 @@
   scrollbar-color: #555 transparent;
 }
 
-html {
-  background:#1c1515;
-  color: var(--foreground);
-  font-family: 'Courier New', Courier, monospace, Helvetica, sans-serif;
-}
-
+html,
 body {
   background: #1c1515;
   color: var(--foreground);
   font-family: 'Courier New', Courier, monospace, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+#__next {
+  height: 100%;
 }
 
 /* АНИМАЦИЯ ПОЯВЛЕНИЯ СООБЩЕНИЙ (снизу вверх) */
@@ -61,4 +64,18 @@ body {
 }
 .slide-up {
   animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Пульсация для отправляемых сообщений */
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.pulse {
+  animation: pulse 1.5s ease-in-out infinite;
 }

@@ -70,7 +70,7 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="h-dvh bg-[#1c1212] flex items-center justify-center text-white">
+      <div className="h-dvh bg-[#1c1515] flex items-center justify-center text-white">
         Загрузка...
       </div>
     );
@@ -81,8 +81,8 @@ export default function Home() {
   }
 
   return (
-    <div className="h-dvh flex items-center justify-center bg-[#1c1212] px-4 relative overflow-hidden">
-      <form onSubmit={handleSubmit} className="bg-black/60 backdrop-blur-md p-6 sm:p-8 rounded-2xl w-full max-w-sm z-10 border border-white/5">
+    <div className="h-dvh flex items-center justify-center bg-[#1c1515] px-4 relative overflow-hidden">
+      <form onSubmit={handleSubmit} className="bg-[#1c1515] p-6 sm:p-8 rounded-2xl w-full max-w-sm z-10 border border-white/10">
         <h2 className="text-white text-2xl mb-4">
           {isLogin ? 'Вход' : 'Регистрация'}
         </h2>
@@ -109,7 +109,7 @@ export default function Home() {
         <button type="submit" className="w-full bg-red-950 text-white p-2 rounded-xl hover:bg-red-900 transition">
           {isLogin ? 'Войти' : 'Зарегистрироваться'}
         </button>
-        <p className="text-gray-500 text-xs text-center mt-6 border-t border-white/5 pt-4">
+        <p className="text-gray-500 text-xs text-center mt-6 border-t border-white/10 pt-4">
           🔒 Анонимный чат · Только логин и пароль - и ты в чате!
         </p>
         <p onClick={() => setIsLogin(!isLogin)} className="text-gray-400 text-sm mt-3 text-center cursor-pointer hover:underline">
@@ -126,7 +126,7 @@ function Chat() {
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [replyTo, setReplyTo] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [chatColor, setChatColor] = useState('#1c1212');
+  const [chatColor, setChatColor] = useState('#1c1515');
   const [isSending, setIsSending] = useState(false);
 
   const [chats, setChats] = useState<any[]>([]);
@@ -326,7 +326,6 @@ function Chat() {
       if (res.ok) {
         const data = await res.json();
         setAvatarUrl(data.avatarUrl);
-        // Обновляем аватарку в сообщениях
         setChatMessages((prev) =>
           prev.map((msg) =>
             msg.username === username
@@ -334,7 +333,6 @@ function Chat() {
               : msg
           )
         );
-        // Обновляем в списке чатов
         setChats((prev) =>
           prev.map((chat) => ({
             ...chat,
@@ -405,10 +403,10 @@ function Chat() {
   };
 
   return (
-    <div className="h-dvh flex bg-[#1c1212] relative">
+    <div className="h-dvh flex bg-[#1c1515] relative">
       {/* Шторка с чатами */}
       <div className={`absolute md:relative z-20 h-full transition-transform duration-300 ${isChatListOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
-        <div className="w-80 h-full bg-black/30 border-r border-white/10 flex flex-col">
+        <div className="w-80 h-full bg-[#1c1515] border-r border-white/10 flex flex-col">
           <div className="p-4 border-b border-white/10">
             <div className="relative">
               <input
@@ -419,7 +417,7 @@ function Chat() {
                 className="w-full p-2 rounded-xl bg-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-red-950 text-sm"
               />
               {searchResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-[#1c1212] border border-white/10 rounded-xl overflow-hidden z-30">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-[#1c1515] border border-white/10 rounded-xl overflow-hidden z-30">
                   {searchResults.map((user) => (
                     <button
                       key={user.username}
@@ -472,8 +470,8 @@ function Chat() {
       </div>
 
       {/* Основная область чата */}
-      <div className="flex-1 flex flex-col overflow-hidden relative">
-        <header className="bg-black/50 p-4 flex justify-between items-center border-b border-white/10 flex-shrink-0">
+      <div className="flex-1 flex flex-col overflow-hidden relative" style={{ backgroundColor: chatColor }}>
+        <header className="bg-[#1c1515] p-4 flex justify-between items-center border-b border-white/10 flex-shrink-0">
           <div className="flex items-center gap-3">
             <button onClick={() => setIsChatListOpen(!isChatListOpen)} className="md:hidden text-gray-400 hover:text-white transition">
               {isChatListOpen ? '✕' : '☰'}
@@ -518,7 +516,7 @@ function Chat() {
         </div>
 
         {currentChatId && (
-          <form onSubmit={sendMessage} className="p-4 bg-black/30 flex gap-2 border-t border-white/10 items-center flex-shrink-0 rounded-2xl">
+          <form onSubmit={sendMessage} className="p-4 bg-[#1c1515] flex gap-2 border-t border-white/10 items-center flex-shrink-0 rounded-2xl">
             <label className="cursor-pointer text-gray-400 hover:text-white transition shrink-0">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -542,7 +540,7 @@ function Chat() {
       {/* ===== НАСТРОЙКИ ===== */}
       {isSettingsOpen && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1c1212] border border-white/10 rounded-2xl max-w-md w-full p-6">
+          <div className="bg-[#1c1515] border border-white/10 rounded-2xl max-w-md w-full p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-white text-xl font-bold">Настройки</h2>
               <button
@@ -584,7 +582,7 @@ function Chat() {
               <p className="text-gray-400 text-sm mb-2">Фон чата</p>
               <div className="flex flex-wrap gap-2">
                 {[
-                  '#1c1212', '#1a1a2e', '#16213e', '#0f3460',
+                  '#1c1515', '#1a1a2e', '#16213e', '#0f3460',
                   '#4a2c2c', '#2d4a2c', '#4a2c4a', '#2c4a4a',
                 ].map((color) => (
                   <button
