@@ -12,7 +12,7 @@ export async function DELETE(request: Request) {
     // Проверяем, что сообщение принадлежит пользователю
     const { data: message, error: messageError } = await supabase
       .from('messages')
-      .select('*')
+      .select('id, username')
       .eq('id', messageId)
       .single();
 
@@ -36,6 +36,7 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    console.error('Ошибка удаления:', error);
     return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
   }
 }
