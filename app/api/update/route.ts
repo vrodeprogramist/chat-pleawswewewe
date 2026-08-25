@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
-export async function GET(request: Request) {
+export async function PUT(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const username = searchParams.get('username');
+    const { username, bio } = await request.json();
 
     if (!username) {
       return NextResponse.json(
@@ -13,37 +12,28 @@ export async function GET(request: Request) {
       );
     }
 
-    console.log('🔍 Запрос профиля для:', username);
-
     const { data, error } = await supabase
       .from('users')
-      .select('username, avatar_url, bio, created_at')
+      .update({ bio: bio || '' })
       .eq('username', username)
-      .single();
+      .select();
 
     if (error) {
-      console.error('❌ Ошибка Supabase:', error);
-      if (error.code === 'PGRST116') {
-        return NextResponse.json(
-          { error: 'Пользователь не найден' },
-          { status: 404 }
-        );
-      }
+      console.error('❌ Ошибка обновления профиля:', error);
       return NextResponse.json(
         { error: error.message },
         { status: 500 }
       );
     }
 
-    if (!data) {
+    if (!data || data.length === 0) {
       return NextResponse.json(
         { error: 'Пользователь не найден' },
         { status: 404 }
       );
     }
 
-    console.log('✅ Профиль найден:', data);
-    return NextResponse.json(data);
+    return NextResponse.json({ success: true, user: data[0] });
   } catch (error) {
     console.error('❌ Критическая ошибка:', error);
     return NextResponse.json(

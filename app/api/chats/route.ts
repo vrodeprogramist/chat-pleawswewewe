@@ -2,93 +2,74 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
 export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const username = searchParams.get('username');
-
-    if (!username) {
-      return NextResponse.json({ error: 'Username required' }, { status: 400 });
-    }
-
-    const { data, error } = await supabase
-      .from('chats')
-      .select('*')
-      .or(`user1.eq.${username},user2.eq.${username}`)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Ошибка получения чатов:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    // Получаем аватарки для всех собеседников
-    const otherUsers = data.map((chat: any) => 
-      chat.user1 === username ? chat.user2 : chat.user1
-    );
-    const { data: users } = await supabase
-      .from('users')
-      .select('username, avatar_url')
-      .in('username', otherUsers);
-
-    const avatarMap = users?.reduce((acc: any, user: any) => {
-      acc[user.username] = user.avatar_url;
-      return acc;
-    }, {});
-
-    const chatsWithUsers = data.map((chat: any) => ({
-      ...chat,
-      otherUser: chat.user1 === username ? chat.user2 : chat.user1,
-      otherUserAvatar: avatarMap?.[chat.user1 === username ? chat.user2 : chat.user1] || null,
-    }));
-
-    return NextResponse.json(chatsWithUsers);
-  } catch (error) {
-    console.error('Ошибка в GET /api/chats:', error);
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
+  const { searchParams } = new URL(request.url);
+  const username = searchParams.get('username');
+  
+  if (!username) {
+    return NextResponse.json({ error: 'Username required' }, { status: 400 });
   }
+  
+  const { data, error } = await supabase
+    .from('chats')
+    .select(`
+      id,
+      user1,
+      user2,
+      messages (
+        text,
+        created_at
+      )
+    `)
+    .or(`user1.eq.${username},user2.eq.${username}`)
+    .order('created_at', { foreignTable: 'messages', ascending: false });
+  
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+  
+  const formatted = data.map((chat: any) => {
+    const otherUser = chat.user1 === username ? chat.user2 : chat.user1;
+    const lastMsg = chat.messages?.[0];
+    return {
+      id: chat.id,
+      user1: chat.user1,
+      user2: chat.user2,
+      otherUser,
+      lastMessage: lastMsg?.text || '',
+      lastMessageTime: lastMsg?.created_at || null,
+    };
+  });
+  
+  return NextResponse.json(formatted);
 }
 
 export async function POST(request: Request) {
-  try {
-    const { user1, user2 } = await request.json();
-
-    if (!user1 || !user2) {
-      return NextResponse.json({ error: 'user1 и user2 обязательны' }, { status: 400 });
-    }
-
-    if (user1 === user2 && user1 !== 'general') {
-      return NextResponse.json({ error: 'Нельзя создать чат с самим собой' }, { status: 400 });
-    }
-
-    const { data: existing, error: findError } = await supabase
-      .from('chats')
-      .select('*')
-      .or(`and(user1.eq.${user1},user2.eq.${user2}),and(user1.eq.${user2},user2.eq.${user1})`)
-      .maybeSingle();
-
-    if (findError && findError.code !== 'PGRST116') {
-      console.error('Ошибка поиска чата:', findError);
-      return NextResponse.json({ error: findError.message }, { status: 500 });
-    }
-
-    if (existing) {
-      return NextResponse.json({ success: true, chatId: existing.id, isNew: false });
-    }
-
-    const { data, error } = await supabase
-      .from('chats')
-      .insert([{ user1, user2 }])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Ошибка создания чата:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ success: true, chatId: data.id, isNew: true });
-  } catch (error) {
-    console.error('Ошибка в POST /api/chats:', error);
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
+  const { user1, user2 } = await request.json();
+  
+  if (!user1 || !user2) {
+    return NextResponse.json({ error: 'Missing users' }, { status: 400 });
   }
+  
+  // Проверяем, есть ли уже чат
+  const { data: existing } = await supabase
+    .from('chats')
+    .select('id')
+    .or(`and(user1.eq.${user1},user2.eq.${user2}),and(user1.eq.${user2},user2.eq.${user1})`)
+    .maybeSingle();
+  
+  if (existing) {
+    return NextResponse.json({ chatId: existing.id });
+  }
+  
+  const { data, error } = await supabase
+    .from('chats')
+    .insert({ user1, user2 })
+    .select()
+    .single();
+  
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+  
+  return NextResponse.json({ chatId: data.id });
 }

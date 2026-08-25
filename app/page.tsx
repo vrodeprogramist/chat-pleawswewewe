@@ -1,314 +1,877 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import Peer from 'peerjs';
 
+// ============================================================
+// ИНТЕРФЕЙСЫ
+// ============================================================
+interface Message {
+  id: number;
+  chat_id: number;
+  username: string;
+  text: string;
+  type?: 'text' | 'image' | 'video' | 'file' | 'voice';
+  fileName?: string;
+  duration?: number;
+  avatar_url?: string | null;
+  reactions?: Reaction[];
+  created_at?: string;
+  tempId?: string;
+}
+
+interface Reaction {
+  id: number;
+  message_id: number;
+  username: string;
+  reaction: string;
+}
+
+interface Chat {
+  id: number;
+  user1: string;
+  user2: string;
+  otherUser: string;
+  otherUserAvatar?: string | null;
+  lastMessage?: string;
+  lastMessageTime?: number;
+}
+
+interface UserProfile {
+  username: string;
+  avatar_url?: string | null;
+  bio?: string;
+  created_at?: string;
+}
+
+// ============================================================
+// КОМПОНЕНТ ПРИВИДЕНИЯ
+// ============================================================
+function GhostIcon({ className = "", size = "normal" }: { className?: string; size?: 'small' | 'normal' | 'large' }) {
+  const sizes = {
+    small: "w-12 h-14",
+    normal: "w-20 h-24",
+    large: "w-32 h-36"
+  };
+  
+  const sizeClass = sizes[size as keyof typeof sizes] || sizes.normal;
+  
+  return (
+    <svg 
+      className={`${sizeClass} ${className}`} 
+      viewBox="0 0 100 120" 
+      fill="none" 
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <defs>
+        <radialGradient id="ghostGlow" cx="50%" cy="40%" r="60%">
+          <stop offset="0%" stopColor="currentColor" stopOpacity="0.3"/>
+          <stop offset="100%" stopColor="currentColor" stopOpacity="0"/>
+        </radialGradient>
+        <radialGradient id="eyeGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="white" stopOpacity="0.95"/>
+          <stop offset="100%" stopColor="white" stopOpacity="0.6"/>
+        </radialGradient>
+        <filter id="ghostFilter">
+          <feGaussianBlur stdDeviation="2" result="blur"/>
+          <feMerge>
+            <feMergeNode in="blur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+
+      <ellipse cx="50" cy="50" rx="48" ry="53" fill="url(#ghostGlow)" className="animate-ghostPulse"/>
+      <ellipse cx="50" cy="115" rx="38" ry="10" fill="currentColor" className="opacity-10 animate-ghostShadow"/>
+      
+      <g className="animate-ghostFloat">
+        <path 
+          d="M20 40C20 18 30 10 50 10C70 10 80 18 80 40V80C80 90 70 95 60 90L55 85C50 90 45 90 40 85L35 90C25 95 20 90 20 80V40Z" 
+          fill="currentColor" 
+          filter="url(#ghostFilter)"
+        />
+        
+        <ellipse cx="35" cy="40" rx="11" ry="13" fill="url(#eyeGlow)" className="animate-ghostEyes" />
+        <ellipse cx="65" cy="40" rx="11" ry="13" fill="url(#eyeGlow)" className="animate-ghostEyes" />
+        <ellipse cx="37" cy="41" rx="5" ry="6" fill="#1a1a2e" className="animate-ghostPupils" />
+        <ellipse cx="67" cy="41" rx="5" ry="6" fill="#1a1a2e" className="animate-ghostPupils" />
+        <circle cx="39" cy="39" r="2" fill="white" opacity="0.9" className="animate-ghostSparkle" />
+        <circle cx="69" cy="39" r="2" fill="white" opacity="0.9" className="animate-ghostSparkle" style={{ animationDelay: '0.15s' }} />
+        
+        <ellipse cx="24" cy="52" rx="9" ry="5" fill="#ff6b6b" opacity="0.12" className="animate-ghostBlush" />
+        <ellipse cx="76" cy="52" rx="9" ry="5" fill="#ff6b6b" opacity="0.12" className="animate-ghostBlush" style={{ animationDelay: '0.2s' }} />
+        <path d="M38 60C44 66 56 66 62 60" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" opacity="0.5" className="animate-ghostSmile" />
+      </g>
+      
+      <g className="animate-ghostWave">
+        <path d="M25 85Q30 78 35 85Q40 92 45 85Q50 78 55 85Q60 92 65 85Q70 78 75 85" stroke="currentColor" strokeWidth="3" fill="none" opacity="0.7"/>
+        <path d="M25 85Q30 78 35 85Q40 92 45 85Q50 78 55 85Q60 92 65 85Q70 78 75 85" stroke="currentColor" strokeWidth="1.5" fill="none" opacity="0.3" transform="translate(0, 4)"/>
+        <path d="M25 85Q30 78 35 85Q40 92 45 85Q50 78 55 85Q60 92 65 85Q70 78 75 85" stroke="currentColor" strokeWidth="0.8" fill="none" opacity="0.15" transform="translate(0, 8)"/>
+      </g>
+      
+      <circle cx="12" cy="20" r="2.5" fill="currentColor" opacity="0.4" className="animate-sparkle" />
+      <circle cx="88" cy="25" r="2" fill="currentColor" opacity="0.4" className="animate-sparkle" style={{ animationDelay: '0.6s' }} />
+      <circle cx="8" cy="58" r="2" fill="currentColor" opacity="0.3" className="animate-sparkle" style={{ animationDelay: '1.2s' }} />
+      <circle cx="92" cy="65" r="2.5" fill="currentColor" opacity="0.4" className="animate-sparkle" style={{ animationDelay: '1.8s' }} />
+      <circle cx="18" cy="72" r="1.5" fill="currentColor" opacity="0.2" className="animate-sparkle" style={{ animationDelay: '0.9s' }} />
+      <circle cx="82" cy="78" r="1.5" fill="currentColor" opacity="0.2" className="animate-sparkle" style={{ animationDelay: '2.1s' }} />
+      
+      <ellipse cx="50" cy="82" rx="30" ry="12" fill="currentColor" opacity="0.04" className="animate-ghostVapor" />
+      <ellipse cx="50" cy="86" rx="20" ry="8" fill="currentColor" opacity="0.06" className="animate-ghostVapor" style={{ animationDelay: '0.5s' }} />
+    </svg>
+  );
+}
+
+// ============================================================
+// ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ
+// ============================================================
+function UserProfileModal({ 
+  username: targetUsername, 
+  currentUsername,
+  onClose, 
+  theme,
+  avatarUrl: propAvatarUrl,
+}: any) {
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const isOwnProfile = targetUsername === currentUsername;
+  const isLight = theme === 'light';
+
+  // Используем переданный avatarUrl для своего профиля
+  const displayAvatarUrl = isOwnProfile ? propAvatarUrl : profile?.avatar_url;
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!targetUsername) {
+        setLoading(false);
+        setError('Не указан пользователь');
+        return;
+      }
+      try {
+        const res = await fetch(`/api/profile?username=${encodeURIComponent(targetUsername)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setProfile(data);
+          setError(null);
+        } else {
+          const errorData = await res.json();
+          setError(errorData.error || 'Профиль не найден');
+          setProfile(null);
+        }
+      } catch (error) {
+        console.error('Ошибка загрузки профиля:', error);
+        setError('Ошибка соединения');
+        setProfile(null);
+      }
+      setLoading(false);
+    };
+    loadProfile();
+  }, [targetUsername]);
+
+  const getAvatarColor = (name: string) => {
+    if (!name || name.length === 0) return '#6c5ce7';
+    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#FF8A5C', '#A29BFE'];
+    return colors[name.charCodeAt(0) % colors.length];
+  };
+
+  const formatDate = (date?: string) => {
+    if (!date) return 'Неизвестно';
+    try {
+      const d = new Date(date);
+      return d.toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric' });
+    } catch {
+      return 'Неизвестно';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+        <div className={`rounded-3xl p-8 ${isLight ? 'bg-white' : 'bg-[#1f1f1f]'}`}>
+          <div className="w-12 h-12 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !profile) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" onClick={onClose}>
+        <div className={`max-w-md w-full rounded-3xl p-6 ${isLight ? 'bg-white' : 'bg-[#1f1f1f]'}`}>
+          <p className="text-center text-gray-500">{error || 'Профиль не найден'}</p>
+          <button onClick={onClose} className="mt-4 w-full py-2 rounded-xl bg-[var(--accent)] text-white">Закрыть</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" onClick={onClose}>
+      <div 
+        className={`max-w-md w-full rounded-3xl p-6 ${isLight ? 'bg-white' : 'bg-[#1f1f1f]'}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-6">
+          <h2 className={`text-xl font-bold ${isLight ? 'text-gray-900' : 'text-white'}`}>
+            {isOwnProfile ? '👤 Мой профиль' : '👤 Профиль'}
+          </h2>
+          <button onClick={onClose} className={`${isLight ? 'text-gray-500' : 'text-gray-400'} text-xl hover:scale-110 transition-transform`}>✕</button>
+        </div>
+
+        <div className="text-center">
+          {/* Аватар */}
+          <div className="w-24 h-24 rounded-full overflow-hidden mx-auto" style={{ backgroundColor: displayAvatarUrl ? 'transparent' : getAvatarColor(profile.username) }}>
+            {displayAvatarUrl ? (
+              <img src={displayAvatarUrl} alt={profile.username} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-white text-3xl font-bold" style={{ backgroundColor: getAvatarColor(profile.username) }}>
+                {profile.username?.charAt(0).toUpperCase() || '?'}
+              </div>
+            )}
+          </div>
+          
+          <h3 className={`text-xl font-semibold mt-3 ${isLight ? 'text-gray-900' : 'text-white'}`}>
+            {profile.username || 'Неизвестно'}
+          </h3>
+          
+          <div className={`mt-2 flex items-center justify-center gap-2 text-sm ${isLight ? 'text-gray-500' : 'text-gray-400'}`}>
+            <span>📅</span>
+            <span>Присоединился: {formatDate(profile.created_at)}</span>
+          </div>
+
+          {profile.bio && (
+            <p className={`text-sm mt-3 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>
+              {profile.bio}
+            </p>
+          )}
+          {!profile.bio && (
+            <p className={`text-sm mt-3 ${isLight ? 'text-gray-400' : 'text-gray-500'} italic`}>
+              Описание не добавлено
+            </p>
+          )}
+        </div>
+
+        {!isOwnProfile && (
+          <button 
+            onClick={onClose}
+            className="w-full mt-6 py-3 rounded-xl text-white font-semibold text-sm transition-all duration-300 hover:opacity-80 active:scale-[0.98]"
+            style={{ backgroundColor: 'var(--accent)' }}
+          >
+            👻 Написать сообщение
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// НАСТРОЙКИ
+// ============================================================
+function SettingsModal({ 
+  username, 
+  avatarUrl, 
+  setAvatarUrl, 
+  onClose, 
+  theme, 
+  setTheme,
+  accentColor,
+  setAccentColor,
+  setIsAuth 
+}: any) {
+  const [bio, setBio] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const isLight = theme === 'light';
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const res = await fetch(`/api/profile?username=${username}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.bio) setBio(data.bio);
+        }
+      } catch (error) {
+        console.error('Ошибка:', error);
+      }
+    };
+    loadProfile();
+  }, [username]);
+
+  const handleSaveProfile = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/profile/update', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, bio }),
+      });
+      if (res.ok) {
+        setIsEditing(false);
+        alert('Профиль обновлен!');
+      }
+    } catch (error) {
+      console.error('Ошибка:', error);
+    }
+    setLoading(false);
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Файл > 5 МБ');
+      return;
+    }
+
+    setIsUploading(true);
+
+    const img = new Image();
+    const reader = new FileReader();
+    
+    reader.onload = async (event) => {
+      img.onload = async () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 200;
+        canvas.height = 200;
+
+        const size = Math.min(img.width, img.height);
+        const x = (img.width - size) / 2;
+        const y = (img.height - size) / 2;
+        
+        ctx?.drawImage(img, x, y, size, size, 0, 0, 200, 200);
+        
+        const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        
+        const formData = new FormData();
+        const blob = await fetch(resizedDataUrl).then(r => r.blob());
+        formData.append('file', blob, 'avatar.jpg');
+        formData.append('username', username);
+
+        try {
+          const res = await fetch('/api/upload-avatar', { method: 'POST', body: formData });
+          if (res.ok) {
+            const data = await res.json();
+            setAvatarUrl(data.avatarUrl);
+            localStorage.setItem(`whisp_avatar_${username}`, data.avatarUrl);
+            
+            // ОТПРАВЛЯЕМ СОБЫТИЕ ДЛЯ ОБНОВЛЕНИЯ АВАТАРКИ ВО ВСЁМ ПРИЛОЖЕНИИ
+            window.dispatchEvent(new Event('avatar-updated'));
+            
+            alert('Аватар обновлен!');
+          }
+        } catch (error) {
+          console.error('Ошибка:', error);
+          alert('Ошибка загрузки');
+        } finally {
+          setIsUploading(false);
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div 
+        className={`max-w-md w-full rounded-3xl p-6 ${isLight ? 'bg-white' : 'bg-[#1f1f1f]'}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-6">
+          <h2 className={`text-xl font-bold ${isLight ? 'text-gray-900' : 'text-white'}`}>⚙️ Настройки</h2>
+          <button onClick={onClose} className={`${isLight ? 'text-gray-500' : 'text-gray-400'} text-xl`}>✕</button>
+        </div>
+
+        <div className="text-center mb-6">
+          <div 
+            className="relative w-24 h-24 rounded-full overflow-hidden mx-auto cursor-pointer group"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {isUploading ? (
+              <div className="w-full h-full bg-gray-700 flex items-center justify-center">
+                <div className="w-10 h-10 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            ) : avatarUrl ? (
+              <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-[var(--accent)] flex items-center justify-center text-white text-3xl font-bold">
+                {username?.charAt(0).toUpperCase() || '?'}
+              </div>
+            )}
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-full">
+              <span className="text-white text-xs font-medium">Изменить</span>
+            </div>
+          </div>
+          <input 
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleAvatarUpload}
+          />
+          <p className={`text-xs mt-2 ${isLight ? 'text-gray-400' : 'text-gray-500'}`}>
+            Нажмите на аватар для загрузки
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <p className={`text-sm font-medium ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>📝 Описание</p>
+              {!isEditing && (
+                <button 
+                  onClick={() => setIsEditing(true)}
+                  className={`text-xs ${isLight ? 'text-[var(--accent)]' : 'text-[var(--accent)]'} hover:underline`}
+                >
+                  Редактировать
+                </button>
+              )}
+            </div>
+            {isEditing ? (
+              <div className="space-y-2">
+                <textarea
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  maxLength={200}
+                  className={`w-full p-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all duration-300 ${isLight ? 'bg-gray-100 text-gray-900' : 'bg-[#2b2b2b] text-white'}`}
+                  rows={3}
+                  placeholder="Расскажите о себе..."
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveProfile}
+                    disabled={loading}
+                    className="flex-1 py-2 rounded-xl text-white text-sm font-semibold transition-all duration-300 hover:opacity-80 disabled:opacity-50"
+                    style={{ backgroundColor: 'var(--accent)' }}
+                  >
+                    {loading ? 'Сохранение...' : 'Сохранить'}
+                  </button>
+                  <button
+                    onClick={() => { setIsEditing(false); }}
+                    className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${isLight ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' : 'bg-[#2b2b2b] text-gray-300 hover:bg-[#3b3b3b]'}`}
+                  >
+                    Отмена
+                  </button>
+                </div>
+                <p className={`text-xs ${isLight ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {bio.length}/200
+                </p>
+              </div>
+            ) : (
+              <p className={`text-sm ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>
+                {bio || 'Описание не добавлено'}
+              </p>
+            )}
+          </div>
+
+          <hr className={`${isLight ? 'border-gray-200' : 'border-[#2b2b2b]'}`} />
+
+          <div>
+            <p className={`text-sm font-medium mb-2 ${isLight ? 'text-black-700' : 'text-gray-300'}`}>🎨 Тема</p>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => { setTheme('dark'); localStorage.setItem('whisp_theme', 'dark'); }} 
+                className={`px-4 py-2 rounded-xl transition-all duration-300 ${theme === 'dark' ? 'bg-[var(--accent)] text-white' : isLight ? 'bg-gray-200' : 'bg-[#22b2b]'}`}
+              >
+                🌙 Тёмная
+              </button>
+              <button 
+                onClick={() => { setTheme('light'); localStorage.setItem('whisp_theme', 'light'); }} 
+                className={`px-4 py-2 rounded-xl transition-all duration-300 ${theme === 'light' ? 'bg-[var(--accent)] text-white' : isLight ? 'bg-gray-200' : 'bg-[#2b2b2b]'}`}
+              >
+                ☀️ Светлая
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <p className={`text-sm font-medium mb-2 ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>🎯 Акцент</p>
+            <div className="flex gap-2 flex-wrap">
+              {['#7c3aed', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899'].map((c) => (
+                <button
+                  key={c}
+                  onClick={() => { 
+                    setAccentColor(c); 
+                    localStorage.setItem('whisp_accent', c); 
+                    document.documentElement.style.setProperty('--accent', c); 
+                  }}
+                  className={`w-10 h-10 rounded-full border-2 transition-all duration-300 ${accentColor === c ? 'border-white scale-110' : 'border-transparent'}`}
+                  style={{ backgroundColor: c }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <button 
+          onClick={() => { 
+            if (confirm('Вы уверены?')) {
+              localStorage.removeItem('whisp_username'); 
+              setIsAuth(false);
+              onClose();
+            }
+          }} 
+          className="w-full mt-6 py-3 rounded-xl bg-red-500/10 text-red-500 font-semibold text-sm transition-all duration-300 hover:bg-red-500/20"
+        >
+          👻 Выйти из аккаунта
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// ЗАГРУЗКА
+// ============================================================
+function LoadingScreen({ theme }: { theme: string }) {
+  return (
+    <div className={`h-dvh flex items-center justify-center flex-col gap-6 ${theme === 'dark' ? 'bg-[#1c1515]' : 'bg-white'}`}>
+      <div className="relative">
+        <GhostIcon 
+          className={`${theme === 'dark' ? 'text-white' : 'text-[var(--accent)]'}`} 
+          size="large"
+        />
+        <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-16 h-2 bg-[var(--accent)] rounded-full blur-md animate-pulse"></div>
+      </div>
+      <div className="flex flex-col items-center gap-2">
+        <p className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} animate-pulse`}>
+          Загрузка...
+        </p>
+        <div className="flex gap-1">
+          <span className={`w-2 h-2 rounded-full bg-[var(--accent)] animate-bounce`} style={{ animationDelay: '0s' }}></span>
+          <span className={`w-2 h-2 rounded-full bg-[var(--accent)] animate-bounce`} style={{ animationDelay: '0.2s' }}></span>
+          <span className={`w-2 h-2 rounded-full bg-[var(--accent)] animate-bounce`} style={{ animationDelay: '0.4s' }}></span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// АВТОРИЗАЦИЯ
+// ============================================================
+function AuthForm({
+  username,
+  setUsername,
+  password,
+  setPassword,
+  isLogin,
+  setIsLogin,
+  setIsAuth,
+  theme,
+  accentColor,
+}: any) {
+  const [isLoading, setIsLoading] = useState(false);
+  const isLight = theme === 'light';
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--accent', accentColor);
+  }, [accentColor]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    const endpoint = isLogin ? '/api/login' : '/api/register';
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      
+      if (res.ok) {
+        localStorage.setItem('whisp_username', username);
+        setIsAuth(true);
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Ошибка');
+      }
+    } catch (error) {
+      alert('Ошибка соединения');
+    }
+    setIsLoading(false);
+  };
+
+  return (
+    <div className={`h-dvh flex items-center justify-center px-4 ${theme === 'dark' ? 'bg-[#1c1515]' : 'bg-gray-50'}`}>
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <div className="relative w-24 h-28 mx-auto">
+            <div className="absolute inset-0 -m-4 rounded-full border-2 border-[var(--accent)] animate-ping opacity-20"></div>
+            <div className="absolute inset-0 -m-8 rounded-full border-2 border-[var(--accent)] animate-ping opacity-10" style={{ animationDelay: '0.5s' }}></div>
+            <div className="absolute inset-0 -m-12 rounded-full border-2 border-[var(--accent)] animate-ping opacity-5" style={{ animationDelay: '1s' }}></div>
+            
+            <div className="relative z-10">
+              <GhostIcon 
+                className={`${isLight ? 'text-[var(--accent)]' : 'text-white'}`} 
+                size="large"
+              />
+            </div>
+          </div>
+
+          <h1 className={`text-3xl font-bold mt-4 ${isLight ? 'text-gray-900' : 'text-white'}`}>
+            <span className="relative inline-block">
+              Whisp
+              <span className="absolute -top-2 -right-7 text-lg">👻</span>
+            </span>
+          </h1>
+          <p className={`text-sm mt-1 ${isLight ? 'text-gray-500' : 'text-gray-400'}`}>
+            {isLogin ? 'Войдите в аккаунт' : 'Создайте аккаунт'}
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="relative group">
+            <input
+              type="text"
+              placeholder="Логин"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              className={`w-full p-4 pl-12 rounded-xl border focus:outline-none focus:ring-2 focus:ring-[var(--accent)] text-sm transition-all duration-300 ${
+                isLight
+                  ? 'bg-white/80 text-gray-900 placeholder-gray-400 border-gray-200'
+                  : 'bg-[#1f1f1f] text-white placeholder-gray-500 border-[#2f2f2f]'
+              }`}
+            />
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg opacity-30 group-hover:opacity-60 transition-opacity duration-300">
+              👻
+            </span>
+          </div>
+          
+          <div className="relative group">
+            <input
+              type="password"
+              placeholder="Пароль"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className={`w-full p-4 pl-12 rounded-xl border focus:outline-none focus:ring-2 focus:ring-[var(--accent)] text-sm transition-all duration-300 ${
+                isLight
+                  ? 'bg-white/80 text-gray-900 placeholder-gray-400 border-gray-200'
+                  : 'bg-[#1f1f1f] text-white placeholder-gray-500 border-[#2f2f2f]'
+              }`}
+            />
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg opacity-30 group-hover:opacity-60 transition-opacity duration-300">
+              🔮
+            </span>
+          </div>
+          
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full py-4 rounded-xl text-white font-semibold text-sm transition-all duration-300 hover:opacity-80 active:scale-[0.98] disabled:opacity-50"
+            style={{ backgroundColor: 'var(--accent)' }}
+          >
+            {isLoading ? (
+              <>
+                <span className="animate-spin inline-block mr-2">👻</span>
+                Загрузка...
+              </>
+            ) : (
+              isLogin ? 'Войти' : 'Зарегистрироваться'
+            )}
+          </button>
+        </form>
+
+        <p
+          onClick={() => setIsLogin(!isLogin)}
+          className={`text-sm text-center mt-6 cursor-pointer hover:underline transition-all duration-300 ${isLight ? 'text-gray-500 hover:text-[var(--accent)]' : 'text-gray-400 hover:text-white'}`}
+        >
+          {isLogin ? 'Нет аккаунта? Создать' : 'Уже есть аккаунт? Войти'}
+        </p>
+
+        <div className="flex items-center justify-center gap-3 mt-8">
+          <div className="w-8 h-[2px] bg-[var(--accent)] opacity-30 rounded-full"></div>
+          <p className={`text-xs ${isLight ? 'text-gray-400' : 'text-gray-600'}`}>
+            👻 Whisp
+          </p>
+          <div className="w-8 h-[2px] bg-[var(--accent)] opacity-30 rounded-full"></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// ГЛАВНЫЙ КОМПОНЕНТ
+// ============================================================
 export default function Home() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLogin, setIsLogin] = useState(true);
   const [isAuth, setIsAuth] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [themeColor, setThemeColor] = useState('#ffffff');
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [accentColor, setAccentColor] = useState('#7c3aed');
 
   useEffect(() => {
-    const savedColor = localStorage.getItem('chatColor') || '#ffffff';
-    setThemeColor(savedColor);
-    
-    const checkAuth = async () => {
-      const saved = localStorage.getItem('chat_username');
-      if (saved) {
-        try {
-          const res = await fetch(`/api/profile?username=${saved}`);
+    const savedTheme = localStorage.getItem('whisp_theme') as 'dark' | 'light' || 'dark';
+    const savedAccent = localStorage.getItem('whisp_accent') || '#7c3aed';
+    setTheme(savedTheme);
+    setAccentColor(savedAccent);
+    document.documentElement.style.setProperty('--accent', savedAccent);
+
+    const savedUsername = localStorage.getItem('whisp_username');
+    if (savedUsername) {
+      fetch(`/api/profile?username=${savedUsername}`)
+        .then(res => {
           if (res.ok) {
-            const data = await res.json();
-            if (data.avatarUrl !== undefined) {
-              setIsAuth(true);
-            } else {
-              localStorage.removeItem('chat_username');
-            }
+            setIsAuth(true);
+            setUsername(savedUsername);
           } else {
-            localStorage.removeItem('chat_username');
+            localStorage.removeItem('whisp_username');
           }
-        } catch (error) {
-          console.error('Ошибка проверки пользователя:', error);
-          localStorage.removeItem('chat_username');
-        }
-      }
+        })
+        .catch(() => localStorage.removeItem('whisp_username'))
+        .finally(() => setLoading(false));
+    } else {
       setLoading(false);
-    };
-    checkAuth();
+    }
   }, []);
 
-  const isLightColor = (color: string) => {
-    if (color === '#ffffff' || color === '#FFFFFF' || color === 'white') return true;
-    let r = parseInt(color.slice(1, 3), 16);
-    let g = parseInt(color.slice(3, 5), 16);
-    let b = parseInt(color.slice(5, 7), 16);
-    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-    return brightness > 150;
-  };
-
-  const isLight = isLightColor(themeColor);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (username.length < 5) {
-      alert('⚠️ Ник должен быть не менее 5 символов');
-      return;
-    }
-    if (username.includes(' ')) {
-      alert('⚠️ Ник не должен содержать пробелов');
-      return;
-    }
-    if (password.length < 5) {
-      alert('⚠️ Пароль должен быть не менее 5 символов');
-      return;
-    }
-
-    const endpoint = isLogin ? '/api/login' : '/api/register';
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
-
-    if (res.ok) {
-      localStorage.setItem('chat_username', username);
-      setIsAuth(true);
-    } else {
-      const data = await res.json();
-      alert(data.error || 'Ошибка, попробуйте снова');
-    }
-  };
-
-  if (loading) {
+  if (loading) return <LoadingScreen theme={theme} />;
+  if (isAuth) {
     return (
-      <div className="h-dvh flex items-center justify-center" style={{ backgroundColor: themeColor, color: isLight ? '#000' : '#fff' }}>
-        Загрузка...
-      </div>
+      <ChatApp
+        username={username}
+        theme={theme}
+        setTheme={setTheme}
+        accentColor={accentColor}
+        setAccentColor={setAccentColor}
+      />
     );
   }
 
-  if (isAuth) {
-    return <Chat />;
-  }
-
   return (
-    <div className="h-dvh flex items-center justify-center px-4" style={{ backgroundColor: themeColor }}>
-      <form onSubmit={handleSubmit} className={`p-6 sm:p-8 rounded-2xl w-full max-w-sm border shadow-lg ${isLight ? 'bg-white border-gray-300' : 'bg-black/20 border-white/20'}`}>
-        <h2 className={`text-2xl mb-4 ${isLight ? 'text-black' : 'text-white'}`}>
-          {isLogin ? 'Вход' : 'Регистрация'}
-        </h2>
-        <div className="mb-2">
-          <input
-            type="text"
-            placeholder="Логин"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className={`w-full p-2 rounded-xl border ${isLight ? 'bg-gray-100 text-black border-gray-300' : 'bg-white/10 text-white border-white/20'}`}
-          />
-        </div>
-        <div className="mb-4">
-          <input
-            type="password"
-            placeholder="Пароль"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={`w-full p-2 rounded-xl border ${isLight ? 'bg-gray-100 text-black border-gray-300' : 'bg-white/10 text-white border-white/20'}`}
-          />
-        </div>
-        <button type="submit" className={`w-full p-2 rounded-xl ${isLight ? 'bg-gray-800 text-white' : 'bg-white/20 text-white'}`}>
-          {isLogin ? 'Войти' : 'Зарегистрироваться'}
-        </button>
-        <p onClick={() => setIsLogin(!isLogin)} className={`text-sm mt-3 text-center cursor-pointer hover:underline ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>
-          {isLogin ? 'Нет аккаунта? Зарегистрируйся' : 'Уже есть аккаунт? Войди'}
-        </p>
-      </form>
-    </div>
+    <AuthForm
+      username={username}
+      setUsername={setUsername}
+      password={password}
+      setPassword={setPassword}
+      isLogin={isLogin}
+      setIsLogin={setIsLogin}
+      setIsAuth={setIsAuth}
+      theme={theme}
+      accentColor={accentColor}
+    />
   );
 }
 
-function Chat() {
-  const [text, setText] = useState('');
-  const [username, setUsername] = useState('');
-  const [chatColor, setChatColor] = useState('#ffffff');
-  const [isSending, setIsSending] = useState(false);
-  const [chats, setChats] = useState<any[]>([]);
+// ============================================================
+// ОСНОВНОЙ ЧАТ - С ИСПРАВЛЕННОЙ АВАТАРКОЙ
+// ============================================================
+function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any) {
+  const [chats, setChats] = useState<Chat[]>([]);
   const [currentChatId, setCurrentChatId] = useState<number | null>(null);
   const [currentChatUser, setCurrentChatUser] = useState<string>('');
-  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [text, setText] = useState('');
+  const [isSending, setIsSending] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [search, setSearch] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [profileUsername, setProfileUsername] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-  const [deleteButton, setDeleteButton] = useState<{ messageId: number; x: number; y: number } | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [deletingMessageId, setDeletingMessageId] = useState<number | string | null>(null);
+
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [isUploadingVoice, setIsUploadingVoice] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  
-  // Звонки
-  const [peer, setPeer] = useState<any>(null);
-  const [currentCall, setCurrentCall] = useState<any>(null);
-  const [incomingCall, setIncomingCall] = useState<any>(null);
-  const [isCallActive, setIsCallActive] = useState(false);
-  const [callTimer, setCallTimer] = useState(0);
-  const [isCalling, setIsCalling] = useState(false);
-  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
-  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
-  const [peerId, setPeerId] = useState<string>('');
-
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const messageIds = useRef<Set<number>>(new Set());
-  const touchStartX = useRef<number | null>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const callTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
 
-  useEffect(() => {
-    const savedUsername = localStorage.getItem('chat_username') || '';
-    const savedColor = localStorage.getItem('chatColor') || '#ffffff';
-    setUsername(savedUsername);
-    setChatColor(savedColor);
-    setIsMobile(window.innerWidth < 768);
-    loadChats();
-    loadAvatar();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const leaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Инициализация PeerJS с фиксированным ID на основе username
-    const peerId = `chat-${savedUsername}`;
-    const newPeer = new Peer(peerId, {
-      host: '0.peerjs.com',
-      port: 443,
-      secure: true,
-    });
+  const [hoveredMessageId, setHoveredMessageId] = useState<number | string | null>(null);
+  const [showReactionsId, setShowReactionsId] = useState<number | string | null>(null);
+  const [animatingReactionId, setAnimatingReactionId] = useState<number | string | null>(null);
+  const [pendingMessages, setPendingMessages] = useState<Set<string>>(new Set());
 
-    newPeer.on('open', (id: string) => {
-      setPeer(newPeer);
-      setPeerId(id);
-      console.log('Peer открыт, ID:', id);
-      // Обновляем peer_id в базе
-      fetch('/api/update-peer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: savedUsername, peerId: id }),
-      }).catch((err: any) => console.error('Ошибка обновления peer_id:', err));
-    });
+  const getAvatarColor = (name: string) => {
+    if (!name || name.length === 0) return '#6c5ce7';
+    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#FF8A5C', '#A29BFE'];
+    return colors[name.charCodeAt(0) % colors.length];
+  };
 
-    newPeer.on('call', async (call: any) => {
-      console.log('Входящий звонок от:', call.peer);
-      setIncomingCall({
-        caller: call.peer.replace('chat-', ''),
-        call: call
-      });
-    });
-
-    newPeer.on('error', (err: any) => {
-      console.error('PeerJS ошибка:', err);
-      if (err.type === 'unavailable-id') {
-        // Если ID занят, пробуем с суффиксом
-        const newId = `chat-${savedUsername}-${Date.now()}`;
-        const newPeer2 = new Peer(newId, {
-          host: '0.peerjs.com',
-          port: 443,
-          secure: true,
-        });
-        newPeer2.on('open', (id: string) => {
-          setPeer(newPeer2);
-          setPeerId(id);
-          fetch('/api/update-peer', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: savedUsername, peerId: id }),
-          }).catch((err: any) => console.error('Ошибка обновления peer_id:', err));
-        });
+  // ============================================================
+  // ФУНКЦИЯ ПРИНУДИТЕЛЬНОГО ОБНОВЛЕНИЯ АВАТАРКИ
+  // ============================================================
+  const forceUpdateAvatar = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/profile?username=${username}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.avatarUrl) {
+          setAvatarUrl(data.avatarUrl);
+          localStorage.setItem(`whisp_avatar_${username}`, data.avatarUrl);
+        } else {
+          setAvatarUrl(null);
+          localStorage.removeItem(`whisp_avatar_${username}`);
+        }
       }
-    });
-
-    // Подписка на звонки через Supabase
-    const channel = supabase
-      .channel('calls-' + savedUsername)
-      .on('postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'calls',
-          filter: `receiver=eq.${savedUsername}`
-        },
-        (payload: any) => {
-          console.log('Новый звонок в БД:', payload.new);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      newPeer.destroy();
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  // Подписка на новые сообщения
-  useEffect(() => {
-    if (!currentChatId) return;
-    const channel = supabase
-      .channel('messages-' + currentChatId)
-      .on('postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages' },
-        (payload: any) => {
-          const newMsg = payload.new;
-          if (newMsg.chat_id === currentChatId && !messageIds.current.has(newMsg.id)) {
-            messageIds.current.add(newMsg.id);
-            setChatMessages((prev) => [...prev, newMsg]);
-            setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-          }
-        }
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [currentChatId]);
-
-  // Подписка на удаление
-  useEffect(() => {
-    if (!currentChatId) return;
-    const channel = supabase
-      .channel('msg-del-' + currentChatId)
-      .on('postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'messages' },
-        (payload: any) => {
-          const deletedMsg = payload.old;
-          if (deletedMsg.chat_id === currentChatId) {
-            setChatMessages((prev) => prev.filter((msg) => msg.id !== deletedMsg.id));
-            messageIds.current.delete(deletedMsg.id);
-          }
-        }
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [currentChatId]);
-
-  useEffect(() => {
-    if (username) {
-      loadAvatar();
-      loadChats();
+    } catch (error) {
+      console.error('Ошибка принудительного обновления аватара:', error);
     }
   }, [username]);
 
-  useEffect(() => {
-    const handleClick = () => setDeleteButton(null);
-    document.addEventListener('click', handleClick);
-    return () => document.removeEventListener('click', handleClick);
-  }, []);
+  // ============================================================
+  // ЗАГРУЗКА АВАТАРКИ
+  // ============================================================
+  const loadAvatar = async () => {
+    try {
+      // Сначала проверяем localStorage
+      const cached = localStorage.getItem(`whisp_avatar_${username}`);
+      if (cached) {
+        setAvatarUrl(cached);
+        return;
+      }
+      
+      const res = await fetch(`/api/profile?username=${username}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.avatarUrl) {
+          setAvatarUrl(data.avatarUrl);
+          localStorage.setItem(`whisp_avatar_${username}`, data.avatarUrl);
+        } else {
+          setAvatarUrl(null);
+          localStorage.removeItem(`whisp_avatar_${username}`);
+        }
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки аватара:', error);
+    }
+  };
 
+  // Слушаем события обновления аватарки
+  useEffect(() => {
+    const handleAvatarUpdate = () => {
+      console.log('Обновление аватарки...');
+      loadAvatar();
+    };
+    
+    window.addEventListener('avatar-updated', handleAvatarUpdate);
+    return () => window.removeEventListener('avatar-updated', handleAvatarUpdate);
+  }, [username]);
+
+  // ============================================================
+  // ЗАГРУЗКА ДАННЫХ
+  // ============================================================
   const loadChats = async () => {
-    if (!username) return;
     try {
       const res = await fetch(`/api/chats?username=${username}`);
       if (res.ok) {
@@ -320,72 +883,63 @@ function Chat() {
     }
   };
 
-  const loadAvatar = async () => {
-    if (!username) return;
-    try {
-      const res = await fetch(`/api/profile?username=${username}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.avatarUrl) {
-          setAvatarUrl(data.avatarUrl);
-        }
-      }
-    } catch (error) {
-      console.error('Ошибка загрузки аватарки:', error);
-    }
-  };
-
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIsUploadingAvatar(true);
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('username', username);
-
-    try {
-      const res = await fetch('/api/upload-avatar', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setAvatarUrl(data.avatarUrl);
-        await loadChats();
-      }
-    } catch (error) {
-      console.error('Ошибка загрузки аватарки:', error);
-    } finally {
-      setIsUploadingAvatar(false);
-    }
-  };
-
-  const loadChatMessages = async (chatId: number) => {
+  const loadMessages = async (chatId: number) => {
     try {
       const res = await fetch(`/api/messages?chatId=${chatId}`);
       if (res.ok) {
         const data = await res.json();
-        setChatMessages(data);
-        messageIds.current = new Set(data.map((m: any) => m.id));
-        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'auto' }), 100);
+        const uniqueMessages = data.filter((msg: Message, index: number, self: Message[]) => 
+          index === self.findIndex((m) => m.id === msg.id)
+        );
+        setMessages(uniqueMessages);
+        
+        if (uniqueMessages.length > 0) {
+          const ids = uniqueMessages.map((m: Message) => m.id);
+          try {
+            const reactionsRes = await fetch(`/api/reactions?messageIds=${ids.join(',')}`);
+            if (reactionsRes.ok) {
+              const reactionsData = await reactionsRes.json();
+              setMessages((prev) =>
+                prev.map((msg) => ({
+                  ...msg,
+                  reactions: reactionsData.filter((r: any) => r.message_id === msg.id),
+                }))
+              );
+            }
+          } catch (error) {
+            console.error('Ошибка загрузки реакций:', error);
+          }
+        }
+        
+        setTimeout(scrollToBottom, 100);
       }
     } catch (error) {
       console.error('Ошибка загрузки сообщений:', error);
     }
   };
 
+  useEffect(() => {
+    loadChats();
+    loadAvatar();
+  }, []);
+
+  // ============================================================
+  // ПОИСК
+  // ============================================================
   const searchUsers = async (query: string) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      return;
+    if (!query.trim()) { 
+      setSearchResults([]); 
+      return; 
     }
     try {
       const res = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`);
       if (res.ok) {
         const data = await res.json();
-        const existingChatUsers = chats.map((c: any) => c.otherUser);
-        const filtered = data.filter((u: any) => u.username !== username && !existingChatUsers.includes(u.username));
+        const existingUsers = chats.map((c) => c.otherUser);
+        const filtered = data.filter((u: any) => 
+          u.username !== username && 
+          !existingUsers.includes(u.username)
+        );
         setSearchResults(filtered);
       }
     } catch (error) {
@@ -400,71 +954,121 @@ function Chat() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user1: username, user2: otherUser }),
       });
-
       if (res.ok) {
         const data = await res.json();
-        setSearch('');
+        setSearchQuery('');
         setSearchResults([]);
         setIsSearchOpen(false);
         await loadChats();
-        setCurrentChatId(data.chatId);
+        const chatId = data.chatId;
+        setCurrentChatId(chatId);
         setCurrentChatUser(otherUser);
-        await loadChatMessages(data.chatId);
+        await loadMessages(chatId);
       }
     } catch (error) {
       console.error('Ошибка создания чата:', error);
     }
   };
 
-  const selectChat = (chatId: number, otherUser: string) => {
-    setCurrentChatId(chatId);
-    setCurrentChatUser(otherUser);
-    loadChatMessages(chatId);
-  };
-
-  const goBackToChats = () => {
-    setCurrentChatId(null);
-    setCurrentChatUser('');
-    setChatMessages([]);
-  };
-
-  const sendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // ============================================================
+  // ОТПРАВКА
+  // ============================================================
+  const sendMessage = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!text.trim() || isSending || !currentChatId) return;
-
+    
+    setIsSending(true);
     const currentText = text;
     setText('');
-    setIsSending(true);
-
+    
+    const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    const optimisticMessage: Message = {
+      id: tempId as any,
+      chat_id: currentChatId,
+      username: username,
+      text: currentText,
+      type: 'text',
+      avatar_url: avatarUrl,
+      tempId: tempId,
+      created_at: new Date().toISOString(),
+      reactions: [],
+    };
+    
+    setMessages((prev) => {
+      const exists = prev.some((m) => m.tempId === tempId || (m.text === currentText && m.username === username && !m.id));
+      if (exists) return prev;
+      return [...prev, optimisticMessage];
+    });
+    setPendingMessages((prev) => new Set(prev).add(tempId));
+    setTimeout(scrollToBottom, 50);
+    
     try {
-      await fetch('/api/messages', {
+      const res = await fetch('/api/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chatId: currentChatId,
-          username,
-          text: currentText,
-          type: 'text',
+        body: JSON.stringify({ 
+          chatId: currentChatId, 
+          username, 
+          text: currentText, 
+          type: 'text', 
           avatar_url: avatarUrl,
+          tempId: tempId 
         }),
       });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.tempId === tempId
+              ? { ...msg, id: data.id, tempId: undefined }
+              : msg
+          )
+        );
+        setPendingMessages((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(tempId);
+          return newSet;
+        });
+      } else {
+        setMessages((prev) => prev.filter((msg) => msg.tempId !== tempId));
+        setPendingMessages((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(tempId);
+          return newSet;
+        });
+        const data = await res.json();
+        alert(data.error || 'Ошибка отправки');
+      }
     } catch (error) {
-      console.error('Ошибка отправки:', error);
+      console.error(error);
+      setMessages((prev) => prev.filter((msg) => msg.tempId !== tempId));
+      setPendingMessages((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(tempId);
+        return newSet;
+      });
     } finally {
       setIsSending(false);
     }
   };
 
+  // ============================================================
+  // ФАЙЛЫ
+  // ============================================================
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !currentChatId) return;
     if (file.size > 50 * 1024 * 1024) {
-      alert('Файл слишком большой. Максимум 50 МБ.');
+      alert('Файл > 50 МБ');
       return;
     }
+    
     const formData = new FormData();
     formData.append('file', file);
     formData.append('username', username);
+
     try {
       const res = await fetch('/api/upload', { method: 'POST', body: formData });
       if (res.ok) {
@@ -487,64 +1091,34 @@ function Chat() {
     }
   };
 
-  const deleteMessage = async (messageId: number) => {
-    try {
-      const res = await fetch('/api/messages/delete', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messageId, username }),
-      });
-
-      if (res.ok) {
-        setChatMessages((prev) => prev.filter((msg) => msg.id !== messageId));
-        messageIds.current.delete(messageId);
-        setDeleteButton(null);
-      }
-    } catch (error) {
-      console.error('Ошибка удаления:', error);
-    }
-  };
-
-  const showDeleteButton = (e: React.MouseEvent, messageId: number, isMyMessage: boolean) => {
-    if (!isMyMessage) return;
-    e.stopPropagation();
-    const rect = (e.target as HTMLElement).getBoundingClientRect();
-    setDeleteButton({
-      messageId,
-      x: rect.left - 40,
-      y: rect.top + rect.height / 2,
-    });
-  };
-
-  // ГОЛОСОВЫЕ СООБЩЕНИЯ
+  // ============================================================
+  // ГОЛОСОВЫЕ
+  // ============================================================
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
       audioChunksRef.current = [];
 
-      mediaRecorder.ondataavailable = (event: BlobEvent) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
 
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        await uploadVoice(audioBlob);
-        stream.getTracks().forEach(track => track.stop());
+      recorder.onstop = async () => {
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await uploadVoice(blob);
+        stream.getTracks().forEach((t) => t.stop());
       };
 
-      mediaRecorder.start();
+      recorder.start();
       setIsRecording(true);
       setRecordingTime(0);
       recordingTimerRef.current = setInterval(() => {
         setRecordingTime((prev) => prev + 1);
       }, 1000);
     } catch (error) {
-      console.error('Ошибка записи:', error);
-      alert('Нужен доступ к микрофону!');
+      alert('Нет доступа к микрофону');
     }
   };
 
@@ -554,17 +1128,33 @@ function Chat() {
       setIsRecording(false);
       if (recordingTimerRef.current) {
         clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
       }
     }
   };
 
-  const uploadVoice = async (audioBlob: Blob) => {
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+      if (mediaRecorderRef.current.stream) {
+        mediaRecorderRef.current.stream.getTracks().forEach((t) => t.stop());
+      }
+    }
+  };
+
+  const uploadVoice = async (blob: Blob) => {
     if (!currentChatId) return;
-    setIsUploadingVoice(true);
+    
+    const formData = new FormData();
+    formData.append('file', blob, 'voice.webm');
+    formData.append('username', username);
+
     try {
-      const formData = new FormData();
-      formData.append('file', audioBlob, 'voice.webm');
-      formData.append('username', username);
       const res = await fetch('/api/upload-voice', { method: 'POST', body: formData });
       if (res.ok) {
         const data = await res.json();
@@ -583,383 +1173,513 @@ function Chat() {
       }
     } catch (error) {
       console.error('Ошибка загрузки голосового:', error);
-    } finally {
-      setIsUploadingVoice(false);
-      setRecordingTime(0);
     }
   };
 
-  // ЗВОНКИ
-  const getPeerIdForUser = async (targetUsername: string): Promise<string | null> => {
-    try {
-      const res = await fetch(`/api/get-peer?username=${targetUsername}`);
-      if (res.ok) {
-        const data = await res.json();
-        return data.peerId;
-      }
-      return null;
-    } catch (error) {
-      console.error('Ошибка получения peer_id:', error);
-      return null;
-    }
-  };
-
-  const startCall = async () => {
-    if (!currentChatUser || !peer) {
-      alert('Выберите чат');
+  // ============================================================
+  // УДАЛЕНИЕ
+  // ============================================================
+  const deleteMessage = async (messageId: number | string) => {
+    const isTempId = typeof messageId === 'string' && messageId.startsWith('temp_');
+    
+    if (isTempId) {
+      setMessages((prev) => prev.filter((msg) => msg.tempId !== messageId));
       return;
     }
-
-    try {
-      // Получаем peer_id собеседника
-      const targetPeerId = await getPeerIdForUser(currentChatUser);
-      if (!targetPeerId) {
-        alert('Пользователь не в сети');
-        return;
-      }
-
-      console.log('Звонок на:', targetPeerId);
-      
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      setLocalStream(stream);
-      setIsCalling(true);
-
-      const call = peer.call(targetPeerId, stream);
-      setCurrentCall(call);
-
-      call.on('stream', (remoteStream: MediaStream) => {
-        console.log('Получен стрим от собеседника');
-        setRemoteStream(remoteStream);
-        setIsCalling(false);
-        setIsCallActive(true);
-        setCallTimer(0);
-
-        if (audioRef.current) {
-          audioRef.current.srcObject = remoteStream;
-          audioRef.current.play().catch((err: any) => console.error('Ошибка воспроизведения:', err));
-        }
-
-        if (callTimerRef.current) {
-          clearInterval(callTimerRef.current);
-        }
-        callTimerRef.current = setInterval(() => {
-          setCallTimer((prev) => prev + 1);
-        }, 1000);
-      });
-
-      call.on('close', () => {
-        console.log('Звонок закрыт');
-        endCall();
-      });
-
-      call.on('error', (err: any) => {
-        console.error('Ошибка звонка:', err);
-        endCall();
-      });
-
-      // Отправляем сигнал через Supabase
-      await fetch('/api/calls', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          caller: username,
-          receiver: currentChatUser,
-          type: 'audio',
-        }),
-      });
-    } catch (error) {
-      console.error('Ошибка звонка:', error);
-      alert('Не удалось начать звонок. Нужен доступ к микрофону.');
-      setIsCalling(false);
-    }
-  };
-
-  const acceptCall = async () => {
-    if (!incomingCall) return;
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      setLocalStream(stream);
-      
-      const call = incomingCall.call;
-      call.answer(stream);
-      setCurrentCall(call);
-      setIncomingCall(null);
-      setIsCallActive(true);
-      setCallTimer(0);
-
-      call.on('stream', (remoteStream: MediaStream) => {
-        console.log('Получен стрим от собеседника');
-        setRemoteStream(remoteStream);
-        setIsCallActive(true);
-        setCallTimer(0);
-
-        if (audioRef.current) {
-          audioRef.current.srcObject = remoteStream;
-          audioRef.current.play().catch((err: any) => console.error('Ошибка воспроизведения:', err));
-        }
-
-        if (callTimerRef.current) {
-          clearInterval(callTimerRef.current);
-        }
-        callTimerRef.current = setInterval(() => {
-          setCallTimer((prev) => prev + 1);
-        }, 1000);
-      });
-
-      call.on('close', () => {
-        console.log('Звонок закрыт');
-        endCall();
-      });
-    } catch (error) {
-      console.error('Ошибка принятия звонка:', error);
-      alert('Не удалось принять звонок. Нужен доступ к микрофону.');
-    }
-  };
-
-  const rejectCall = () => {
-    if (incomingCall && incomingCall.call) {
-      incomingCall.call.close();
-    }
-    setIncomingCall(null);
-  };
-
-  const endCall = () => {
-    if (currentCall) {
+    
+    setDeletingMessageId(messageId);
+    
+    setTimeout(async () => {
       try {
-        currentCall.close();
-      } catch (e) {}
-    }
-    if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
-    }
-    if (remoteStream) {
-      remoteStream.getTracks().forEach(track => track.stop());
-    }
-    setCurrentCall(null);
-    setLocalStream(null);
-    setRemoteStream(null);
-    setIsCallActive(false);
-    setIsCalling(false);
-    setCallTimer(0);
-    if (callTimerRef.current) {
-      clearInterval(callTimerRef.current);
-      callTimerRef.current = null;
-    }
-    if (audioRef.current) {
-      audioRef.current.srcObject = null;
-      audioRef.current.pause();
-    }
+        const res = await fetch('/api/messages/delete', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messageId, username }),
+        });
+        if (res.ok) {
+          setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+        } else {
+          const data = await res.json();
+          alert(data.error || 'Ошибка удаления');
+        }
+      } catch (error) { console.error('Ошибка удаления:', error); }
+      setDeletingMessageId(null);
+    }, 350);
   };
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current !== null) {
-      const diff = touchStartX.current - e.changedTouches[0].clientX;
-      if (diff < -50 && currentChatId && isMobile) {
-        goBackToChats();
+  // ============================================================
+  // РЕАКЦИИ
+  // ============================================================
+  const toggleReaction = async (messageId: number | string, emoji: string) => {
+    const isTempId = typeof messageId === 'string' && messageId.startsWith('temp_');
+    if (isTempId) return;
+    
+    try {
+      const msg = messages.find((m) => m.id === messageId);
+      if (!msg) return;
+      const userReaction = msg.reactions?.find((r) => r.username === username);
+      
+      setAnimatingReactionId(messageId);
+      
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.id === messageId) {
+            const currentReactions = m.reactions || [];
+            const existing = currentReactions.find((r) => r.username === username);
+            
+            if (existing?.reaction === emoji) {
+              return {
+                ...m,
+                reactions: currentReactions.filter((r) => r.username !== username),
+              };
+            } else if (existing) {
+              return {
+                ...m,
+                reactions: currentReactions.map((r) =>
+                  r.username === username ? { ...r, reaction: emoji } : r
+                ),
+              };
+            } else {
+              return {
+                ...m,
+                reactions: [
+                  ...currentReactions,
+                  { id: Date.now(), message_id: messageId as number, username, reaction: emoji },
+                ],
+              };
+            }
+          }
+          return m;
+        })
+      );
+      
+      if (userReaction?.reaction === emoji) {
+        await fetch('/api/reactions/delete', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messageId, username }),
+        });
+      } else {
+        await fetch('/api/reactions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messageId, username, reaction: emoji }),
+        });
       }
+      
+      setTimeout(() => {
+        setAnimatingReactionId(null);
+      }, 300);
+    } catch (error) { 
+      console.error('Ошибка реакции:', error);
+      setAnimatingReactionId(null);
     }
-    touchStartX.current = null;
   };
 
-  const getAvatarColor = (name: string) => {
-    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#FF8A5C', '#A29BFE', '#FD79A8', '#00CEC9'];
-    return colors[name.charCodeAt(0) % colors.length];
-  };
-
-  const darkenColor = (color: string, amount: number = 0.7) => {
-    if (color === '#ffffff') {
-      const grayValue = Math.floor(255 * amount);
-      return `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
+  // ============================================================
+  // HOVER
+  // ============================================================
+  const handleMouseEnter = (messageId: number | string) => {
+    setHoveredMessageId(messageId);
+    if (leaveTimeoutRef.current) {
+      clearTimeout(leaveTimeoutRef.current);
+      leaveTimeoutRef.current = null;
     }
-    let r = parseInt(color.slice(1, 3), 16);
-    let g = parseInt(color.slice(3, 5), 16);
-    let b = parseInt(color.slice(5, 7), 16);
-    r = Math.floor(r * amount);
-    g = Math.floor(g * amount);
-    b = Math.floor(b * amount);
-    return `rgb(${r}, ${g}, ${b})`;
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    hoverTimeoutRef.current = setTimeout(() => {
+      setShowReactionsId(messageId);
+    }, 300);
   };
 
-  const isLightColor = (color: string) => {
-    if (color === '#ffffff') return true;
-    let r = parseInt(color.slice(1, 3), 16);
-    let g = parseInt(color.slice(3, 5), 16);
-    let b = parseInt(color.slice(5, 7), 16);
-    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-    return brightness > 150;
+  const handleMouseLeave = () => {
+    setHoveredMessageId(null);
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    if (leaveTimeoutRef.current) {
+      clearTimeout(leaveTimeoutRef.current);
+    }
+    leaveTimeoutRef.current = setTimeout(() => {
+      setShowReactionsId(null);
+      leaveTimeoutRef.current = null;
+    }, 200);
   };
 
-  const isLight = isLightColor(chatColor);
+  // ============================================================
+  // REALTIME ПОДПИСКИ
+  // ============================================================
+  useEffect(() => {
+    if (!currentChatId) return;
 
-  const handleLogout = () => {
-    localStorage.removeItem('chat_username');
-    window.location.reload();
+    const messagesChannel = supabase
+      .channel('public:messages')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        (payload) => {
+          const newMsg = payload.new as Message;
+          if (newMsg.chat_id === currentChatId) {
+            setMessages((prev) => {
+              if (newMsg.tempId && prev.some((m) => m.tempId === newMsg.tempId)) {
+                return prev;
+              }
+              if (prev.some((m) => m.id === newMsg.id)) {
+                return prev;
+              }
+              return [...prev, newMsg];
+            });
+            setTimeout(scrollToBottom, 50);
+          }
+        }
+      )
+      .subscribe();
+
+    const deleteChannel = supabase
+      .channel('public:messages:delete')
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'messages' },
+        (payload) => {
+          const deleted = payload.old as Message;
+          if (deleted.chat_id === currentChatId) {
+            setMessages((prev) => prev.filter((msg) => msg.id !== deleted.id));
+          }
+        }
+      )
+      .subscribe();
+
+    const reactionsChannel = supabase
+      .channel('public:reactions')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'reactions' },
+        async () => {
+          const currentMessages = messages.filter(m => typeof m.id === 'number');
+          if (currentMessages.length === 0) return;
+
+          const ids = currentMessages.map((m) => m.id);
+          try {
+            const res = await fetch(`/api/reactions?messageIds=${ids.join(',')}`);
+            if (res.ok) {
+              const data = await res.json();
+              setMessages((prev) =>
+                prev.map((msg) => {
+                  const msgId = msg.id;
+                  const isTempId = typeof msgId === 'string' && (msgId as string).startsWith('temp_');
+                  if (isTempId) return msg;
+                  return {
+                    ...msg,
+                    reactions: data.filter((r: any) => r.message_id === msg.id),
+                  };
+                })
+              );
+            }
+          } catch (error) {
+            console.error('Ошибка загрузки реакций:', error);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      messagesChannel.unsubscribe();
+      deleteChannel.unsubscribe();
+      reactionsChannel.unsubscribe();
+    };
+  }, [currentChatId]);
+
+  // ============================================================
+  // ВСПОМОГАТЕЛЬНЫЕ
+  // ============================================================
+  const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  
+  const formatTime = (date?: string) => {
+    if (!date) return '';
+    const d = new Date(date);
+    return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
   };
 
-  const getCurrentChatAvatar = () => {
-    const currentChat = chats.find((chat: any) => 
-      (chat.user1 === username && chat.user2 === currentChatUser) ||
-      (chat.user2 === username && chat.user1 === currentChatUser)
-    );
-    return currentChat?.otherUserAvatar || null;
+  const isLight = theme === 'light';
+
+  const handleProfileClick = (user: string) => {
+    if (user) {
+      setProfileUsername(user);
+      setIsProfileOpen(true);
+    }
   };
 
-  const currentChatAvatar = getCurrentChatAvatar();
-
+  // ============================================================
+  // РЕНДЕР
+  // ============================================================
   return (
-    <div className="h-dvh flex overflow-hidden" style={{ backgroundColor: chatColor }}>
-      {/* Список чатов */}
-      <div 
-        className={`${isMobile && currentChatId ? 'hidden' : 'flex'} flex-col flex-shrink-0 ${isMobile ? 'w-full' : 'w-80'}`}
-        style={{ backgroundColor: isLight ? '#f0f0f0' : darkenColor(chatColor, 0.9) }}
-      >
-        <div className="p-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className={isLight ? 'text-gray-600' : 'text-gray-400'}>⚙️</button>
-            <span className={`font-bold ${isLight ? 'text-black' : 'text-white'}`}>Чаты ({username})</span>
+    <div className={`h-dvh flex overflow-hidden ${isLight ? 'bg-gray-100' : 'bg-[#1c1515]'}`}>
+      {/* БОКОВОЕ МЕНЮ */}
+      <div className={`${isMobileMenuOpen ? 'absolute inset-0 z-50 flex' : 'hidden md:flex'} md:relative md:z-0 md:flex flex-col w-[320px] max-w-[85vw] md:max-w-[320px] flex-shrink-0 ${isLight ? 'bg-white' : 'bg-[#1f1f1f]'} border-r ${isLight ? 'border-gray-200' : 'border-[#2b2b2b]'}`}>
+        <div className={`flex items-center justify-between p-4 ${isLight ? 'bg-gray-50' : 'bg-[#1f1f1f]'}`}>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => handleProfileClick(username)} 
+              className="w-10 h-10 rounded-full overflow-hidden bg-[var(--accent)] flex items-center justify-center text-white font-bold text-sm"
+            >
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <span>{username?.charAt(0).toUpperCase() || '?'}</span>
+              )}
+            </button>
+            <span className={`font-semibold ${isLight ? 'text-gray-900' : 'text-white'}`}>{username}</span>
           </div>
-          <button onClick={() => setIsSearchOpen(!isSearchOpen)} className={isLight ? 'text-gray-600' : 'text-gray-400'}>🔍</button>
+          <div className="flex items-center gap-1">
+            <button 
+              onClick={() => {
+                setIsSearchOpen(!isSearchOpen);
+                if (!isSearchOpen) setSearchResults([]);
+              }} 
+              className="p-2 rounded-full hover:bg-[var(--accent)]/10 transition-all"
+            >
+              <svg className={`w-5 h-5 ${isLight ? 'text-gray-700' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
+            <button 
+              onClick={() => setIsSettingsOpen(true)} 
+              className="p-2 rounded-full hover:bg-[var(--accent)]/10 transition-all"
+            >
+              <svg className={`w-5 h-5 ${isLight ? 'text-gray-700' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              </svg>
+            </button>
+            <button 
+              onClick={() => setIsMobileMenuOpen(false)} 
+              className="md:hidden p-2 rounded-full hover:bg-gray-700/20 transition-all"
+            >
+              <svg className={`w-5 h-5 ${isLight ? 'text-gray-700' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {isSearchOpen && (
-          <div className="px-4 pb-2">
+          <div className={`px-4 py-2 ${isLight ? 'bg-gray-50' : 'bg-[#1f1f1f]'}`}>
             <input
-              ref={searchInputRef}
               type="text"
               placeholder="Поиск..."
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); searchUsers(e.target.value); }}
-              className={`w-full p-2 rounded-xl text-sm ${isLight ? 'bg-gray-200 text-black' : 'bg-white/10 text-white'}`}
+              value={searchQuery}
+              onChange={(e) => { 
+                setSearchQuery(e.target.value); 
+                searchUsers(e.target.value); 
+              }}
+              className={`w-full p-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all ${
+                isLight ? 'bg-white text-gray-900 placeholder-gray-400' : 'bg-[#2b2b2f] text-white placeholder-gray-500'
+              }`}
             />
+            {searchResults.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {searchResults.map((user) => (
+                  <button 
+                    key={user.username} 
+                    onClick={() => createChat(user.username)}
+                    className={`w-full flex items-center gap-3 p-2 rounded-xl transition-all ${isLight ? 'hover:bg-gray-200' : 'hover:bg-[#2b2b2f]'}`}
+                  >
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: getAvatarColor(user.username) }}>
+                      {user.username?.charAt(0).toUpperCase() || '?'}
+                    </div>
+                    <span className={`text-sm ${isLight ? 'text-gray-900' : 'text-white'}`}>{user.username}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto p-2">
-          {!isSearchOpen ? (
-            chats.map((chat: any) => {
-              const otherUser = chat.user1 === username ? chat.user2 : chat.user1;
-              return (
-                <button
-                  key={chat.id}
-                  onClick={() => selectChat(chat.id, otherUser)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl ${currentChatId === chat.id ? (isLight ? 'bg-gray-300' : 'bg-white/10') : (isLight ? 'hover:bg-gray-200' : 'hover:bg-white/5')}`}
-                >
-                  <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
-                    {chat.otherUserAvatar ? (
-                      <img src={chat.otherUserAvatar} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-white font-bold" style={{ backgroundColor: getAvatarColor(otherUser) }}>
-                        {otherUser.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 text-left">
-                    <span className={`font-medium text-sm ${isLight ? 'text-black' : 'text-white'}`}>{otherUser}</span>
-                    {chat.lastMessage && (
-                      <span className={`text-xs block truncate ${isLight ? 'text-gray-700' : 'text-gray-400'}`}>
-                        {chat.username === username ? 'Вы: ' : ''}{chat.lastMessage}
-                      </span>
-                    )}
-                  </div>
-                </button>
-              );
-            })
-          ) : (
-            searchResults.map((user: any) => (
+        <div className="flex-1 overflow-y-auto">
+          {chats.map((chat) => {
+            const name = chat.otherUser;
+            return (
               <button
-                key={user.username}
-                onClick={() => createChat(user.username)}
-                className={`w-full flex items-center gap-3 p-3 rounded-xl ${isLight ? 'hover:bg-gray-100' : 'hover:bg-white/5'}`}
+                key={chat.id}
+                onClick={() => { setCurrentChatId(chat.id); setCurrentChatUser(chat.otherUser); loadMessages(chat.id); if (window.innerWidth < 768) setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center gap-3 p-3 transition-all ${currentChatId === chat.id ? (isLight ? 'bg-gray-200' : 'bg-[#2b2b2f]') : 'hover:bg-[var(--accent)]/5'}`}
               >
-                <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-white font-bold">
-                  {user.username.charAt(0).toUpperCase()}
+                <div className="w-12 h-12 rounded-full flex-shrink-0 bg-[var(--accent)] flex items-center justify-center text-white font-bold text-lg">
+                  {name?.charAt(0).toUpperCase() || '?'}
                 </div>
-                <span className={`text-sm ${isLight ? 'text-black' : 'text-white'}`}>{user.username}</span>
+                <div className="flex-1 text-left min-w-0">
+                  <div className="flex items-center justify-between">
+                    <span className={`font-medium text-sm truncate ${isLight ? 'text-gray-900' : 'text-white'}`}>{name}</span>
+                    <span className={`text-xs flex-shrink-0 ${isLight ? 'text-gray-400' : 'text-gray-500'}`}>{chat.lastMessageTime ? formatTime(new Date(chat.lastMessageTime).toISOString()) : ''}</span>
+                  </div>
+                  {chat.lastMessage && <span className={`text-xs truncate block ${isLight ? 'text-gray-500' : 'text-gray-400'}`}>{chat.lastMessage}</span>}
+                </div>
               </button>
-            ))
-          )}
+            );
+          })}
         </div>
       </div>
 
-      {/* Область чата */}
-      <div className={`flex-1 flex-col ${currentChatId ? 'flex' : isMobile ? 'hidden' : 'flex'}`} style={{ backgroundColor: chatColor }}>
+      {/* ОКНО ЧАТА */}
+      <div className="flex-1 flex flex-col min-w-0">
         {currentChatId ? (
           <>
-            <div className="p-3 flex items-center gap-2 flex-shrink-0" style={{ backgroundColor: isLight ? '#e0e0e0' : darkenColor(chatColor, 0.85) }}>
-              {isMobile && <button onClick={goBackToChats} className={isLight ? 'text-gray-600' : 'text-gray-400'}>←</button>}
-              <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0">
-                {currentChatAvatar ? (
-                  <img src={currentChatAvatar} alt="Avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: getAvatarColor(currentChatUser) }}>
-                    {currentChatUser.charAt(0).toUpperCase()}
-                  </div>
-                )}
-              </div>
-              <span className={`font-medium text-sm truncate ${isLight ? 'text-black' : 'text-white'}`}>{currentChatUser}</span>
-              {!isCallActive && !isCalling && !incomingCall && (
-                <button onClick={startCall} className={`ml-auto p-2 ${isLight ? 'text-gray-600' : 'text-gray-400'}`} title="Позвонить">📞</button>
-              )}
-              {isCallActive && (
-                <button onClick={endCall} className={`ml-auto p-2 text-red-500`} title="Завершить звонок">🔴</button>
-              )}
-            </div>
-
-            {/* Полоса звонка */}
-            {isCalling && (
-              <div className="p-2 bg-green-600 text-white text-center text-sm">
-                Звоним... <button onClick={endCall} className="underline">Отмена</button>
-              </div>
-            )}
-
-            {incomingCall && (
-              <div className="p-2 bg-blue-600 text-white flex items-center justify-between text-sm">
-                <span>Входящий звонок от {incomingCall.caller.replace('chat-', '')}...</span>
-                <div className="flex gap-2">
-                  <button onClick={acceptCall} className="bg-green-600 px-3 py-0.5 rounded">Ответить</button>
-                  <button onClick={rejectCall} className="bg-red-600 px-3 py-0.5 rounded">Отклонить</button>
+            <header className={`flex items-center gap-3 p-3 flex-shrink-0 cursor-pointer ${isLight ? 'bg-gray-50 border-b border-gray-200' : 'bg-[#1f1f1f] border-b border-[#2b2b2b]'}`}>
+              <button onClick={() => { if (window.innerWidth < 768) setIsMobileMenuOpen(true); }} className="md:hidden p-1 rounded-full hover:bg-gray-700/20 transition-all">
+                <svg className={`w-6 h-6 ${isLight ? 'text-gray-700' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                {/* АВАТАРКА В ШАПКЕ */}
+                <div 
+                  className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 cursor-pointer bg-[var(--accent)] flex items-center justify-center text-white font-bold"
+                  onClick={() => handleProfileClick(currentChatUser)}
+                >
+                  {currentChatUser === username && avatarUrl ? (
+                    <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-lg">{currentChatUser?.charAt(0).toUpperCase() || '?'}</span>
+                  )}
+                </div>
+                <div 
+                  className="flex-1 min-w-0 cursor-pointer"
+                  onClick={() => handleProfileClick(currentChatUser)}
+                >
+                  <span className={`font-medium ${isLight ? 'text-gray-900' : 'text-white'}`}>{currentChatUser}</span>
+                  <p className={`text-xs truncate ${isLight ? 'text-gray-400' : 'text-gray-500'}`}>👻 Нажмите для просмотра профиля</p>
                 </div>
               </div>
-            )}
+            </header>
 
-            {isCallActive && (
-              <div className="p-2 bg-green-600 text-white flex items-center justify-between text-sm">
-                <span>📞 {formatTime(callTimer)}</span>
-                <button onClick={endCall} className="bg-red-600 px-3 py-0.5 rounded">Завершить</button>
-              </div>
-            )}
+            {/* СООБЩЕНИЯ */}
+            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3 messages-container">
+              {messages.map((msg) => {
+                const isMy = msg.username === username;
+                const msgReactions = msg.reactions || [];
+                const groupedReactions = msgReactions.reduce((acc: any, r: Reaction) => {
+                  acc[r.reaction] = (acc[r.reaction] || 0) + 1;
+                  return acc;
+                }, {});
+                const userReaction = msgReactions.find((r) => r.username === username)?.reaction;
+                const isDeleting = deletingMessageId === msg.id || deletingMessageId === msg.tempId;
+                const showReactions = showReactionsId === msg.id || showReactionsId === msg.tempId;
+                const isHovered = hoveredMessageId === msg.id || hoveredMessageId === msg.tempId;
+                const isAnimating = animatingReactionId === msg.id;
+                const isPending = msg.tempId ? pendingMessages.has(msg.tempId) : false;
 
-            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-3" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-              {chatMessages.map((msg: any) => {
-                const isMyMessage = msg.username === username;
+                const key = msg.id || msg.tempId || `msg-${Math.random()}`;
+
                 return (
-                  <div key={msg.id} className={`flex mb-2 ${isMyMessage ? 'justify-end' : 'justify-start'}`}>
-                    <div
-                      className={`inline-block px-3 py-2 rounded-2xl max-w-[75%] ${isMyMessage ? (isLight ? 'bg-gray-800 text-white' : 'text-white') : (isLight ? 'bg-gray-200 text-black' : 'bg-white/10 text-gray-200')}`}
-                      style={isMyMessage && !isLight ? { backgroundColor: darkenColor(chatColor, 0.6) } : {}}
-                      onClick={(e) => showDeleteButton(e, msg.id, isMyMessage)}
-                    >
-                      {msg.type === 'image' && <img src={msg.text} alt="Фото" className="max-w-[200px] rounded-xl" />}
-                      {msg.type === 'video' && <video src={msg.text} controls className="max-w-[200px] rounded-xl" />}
-                      {msg.type === 'file' && <a href={msg.text} target="_blank" className="underline">📎 {msg.fileName || 'Файл'}</a>}
-                      {msg.type === 'voice' && (
-                        <div className="flex items-center gap-2">
-                          <audio controls src={msg.text} className="max-w-[200px] h-8" />
-                          {msg.duration && <span className="text-xs opacity-70">{msg.duration}с</span>}
+                  <div
+                    key={key}
+                    className={`flex items-end gap-3 ${isMy ? 'flex-row-reverse' : ''} relative ${
+                      isPending ? 'animate-pulse opacity-70' : ''
+                    } ${
+                      !isPending && !isDeleting ? 'animate-slideUp' : ''
+                    } ${
+                      isDeleting ? 'animate-delete' : ''
+                    }`}
+                    onMouseEnter={() => handleMouseEnter(msg.id || msg.tempId || key)}
+                    onMouseLeave={handleMouseLeave}
+                  >
+                    {!isMy && (
+                      <div 
+                        className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 cursor-pointer bg-[var(--accent)] flex items-center justify-center text-white font-bold text-sm"
+                        onClick={() => handleProfileClick(msg.username)}
+                      >
+                        {msg.username?.charAt(0).toUpperCase() || '?'}
+                      </div>
+                    )}
+
+                    {/* БЛОК СООБЩЕНИЯ */}
+                    <div className={`max-w-[80%] ${isMy ? 'flex flex-col items-end' : ''}`}>
+                      {!isMy && (
+                        <span 
+                          className={`text-sm font-medium ml-2 mb-1 cursor-pointer hover:underline ${isLight ? 'text-gray-600' : 'text-gray-400'}`}
+                          onClick={() => handleProfileClick(msg.username)}
+                        >
+                          {msg.username}
+                        </span>
+                      )}
+
+                      <div className="relative flex items-center gap-2">
+                        {isHovered && !isPending && !isDeleting && (
+                          <div className={`flex items-center gap-1 flex-shrink-0 ${isMy ? 'order-first' : 'order-last'}`}>
+                            {isMy && (
+                              <button
+                                onClick={() => deleteMessage(msg.id || msg.tempId || key)}
+                                className={`w-8 h-8 rounded-full flex items-center justify-center text-base transition-all hover:scale-110 ${
+                                  isLight ? 'bg-gray-200 text-gray-600 hover:bg-gray-300' : 'bg-[#2b2b2b] text-gray-400 hover:bg-[#3b3b3b]'
+                                }`}
+                                title="Удалить"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            )}
+
+                            <div
+                              className={`flex gap-0.5 bg-[#1f1f1f] rounded-full px-2 py-1 shadow-lg border border-[#2f2f2f] z-10 transition-all duration-300 ${
+                                showReactions ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+                              }`}
+                            >
+                              {['❤️', '🔥', '😂', '😢', '👍'].map((emoji) => (
+                                <button
+                                  key={`${msg.id}-${emoji}`}
+                                  onClick={() => toggleReaction(msg.id || msg.tempId || key, emoji)}
+                                  className={`w-8 h-8 flex items-center justify-center rounded-full text-base transition-all hover:scale-125 active:scale-90 ${
+                                    userReaction === emoji ? 'bg-[var(--accent)]/30 scale-110' : ''
+                                  } ${isAnimating ? 'animate-bounce' : ''}`}
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div
+                          className={`px-6 py-4 rounded-2xl text-base break-words ${
+                            isMy 
+                              ? 'bg-[var(--accent)] text-white rounded-br-sm' 
+                              : isLight 
+                                ? 'bg-white text-gray-900 rounded-bl-sm shadow-md' 
+                                : 'bg-[#2b2b2b] text-white rounded-bl-sm'
+                          }`}
+                        >
+                          {msg.type === 'image' && <img src={msg.text} alt="Фото" className="max-w-[300px] rounded-xl" />}
+                          {msg.type === 'video' && <video src={msg.text} controls className="max-w-[300px] rounded-xl" />}
+                          {msg.type === 'voice' && (
+                            <div className="flex items-center gap-3">
+                              <audio controls src={msg.text} className="h-12" />
+                              {msg.duration && <span className="text-sm opacity-70">{msg.duration}с</span>}
+                            </div>
+                          )}
+                          {(!msg.type || msg.type === 'text') && <span className="text-base">{msg.text}</span>}
+                          {isPending && (
+                            <span className="inline-block ml-2 text-xs opacity-50 animate-pulse">⏳</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {Object.keys(groupedReactions).length > 0 && !isPending && (
+                        <div className={`flex flex-wrap gap-1.5 mt-1 ${isMy ? 'justify-end' : ''}`}>
+                          {Object.entries(groupedReactions).map(([emoji, count]) => (
+                            <span key={`${msg.id}-${emoji}-count`} className={`text-sm px-2 py-0.5 rounded-full ${isLight ? 'bg-gray-200 text-gray-700' : 'bg-[#2b2b2b] text-gray-300'}`}>
+                              {emoji} {count as number}
+                            </span>
+                          ))}
                         </div>
                       )}
-                      {(!msg.type || msg.type === 'text') && <span className="break-words text-sm">{msg.text}</span>}
+
+                      <div className={`flex items-center gap-2 mt-1 ${isMy ? 'flex-row-reverse' : ''}`}>
+                        <span className={`text-xs ${isLight ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {msg.tempId ? 'Отправка...' : formatTime(msg.created_at)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 );
@@ -967,103 +1687,97 @@ function Chat() {
               <div ref={messagesEndRef} />
             </div>
 
-            <form onSubmit={sendMessage} className="p-2 flex gap-1 items-center flex-shrink-0" style={{ backgroundColor: isLight ? '#e0e0e0' : darkenColor(chatColor, 0.85) }}>
-              <label className={`p-2 cursor-pointer ${isLight ? 'text-gray-600' : 'text-gray-400'}`} title="Фото">
-                📎
-                <input
-                  type="file"
-                  className="hidden"
-                  onChange={handleFileUpload}
-                  accept="image/*,video/*"
-                  capture="environment"
-                />
+            {/* ПОЛЕ ВВОДА */}
+            <form onSubmit={sendMessage} className={`flex items-end gap-2 p-3 flex-shrink-0 ${isLight ? 'bg-gray-50 border-t border-gray-200' : 'bg-[#1f1f1f] border-t border-[#2b2b2b]'}`}>
+              <label className="cursor-pointer p-2 rounded-full hover:bg-[var(--accent)]/10 transition-all">
+                <svg className={`w-5 h-5 ${isLight ? 'text-gray-600' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} accept="image/*,video/*" />
               </label>
 
               {!isRecording ? (
-                <button type="button" onClick={startRecording} className={`p-2 ${isLight ? 'text-gray-600' : 'text-gray-400'}`} title="Голосовое">
-                  🎤
-                </button>
+                <>
+                  <input 
+                    type="text" 
+                    value={text} 
+                    onChange={(e) => setText(e.target.value)} 
+                    placeholder="Напишите сообщение..." 
+                    className={`flex-1 p-3 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all ${isLight ? 'bg-white text-gray-900 placeholder-gray-400' : 'bg-[#2b2b2b] text-white placeholder-gray-500'}`} 
+                  />
+                  <button 
+                    type="button" 
+                    onClick={startRecording} 
+                    className="p-2 rounded-full hover:bg-[var(--accent)]/10 transition-all"
+                  >
+                    <svg className={`w-5 h-5 ${isLight ? 'text-gray-600' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    </svg>
+                  </button>
+                  <button 
+                    type="submit" 
+                    disabled={isSending || !text.trim()} 
+                    className="p-3 rounded-full text-white disabled:opacity-50 transition-all hover:scale-105 active:scale-95"
+                    style={{ backgroundColor: 'var(--accent)' }}
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                    </svg>
+                  </button>
+                </>
               ) : (
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-red-500">{formatTime(recordingTime)}</span>
-                  <button type="button" onClick={stopRecording} className="p-2 text-green-500">➤</button>
+                <div className="flex items-center gap-3 flex-1">
+                  <span className={`text-sm font-mono ${isLight ? 'text-gray-900' : 'text-white'}`}>
+                    {String(Math.floor(recordingTime / 60)).padStart(2, '0')}:{String(recordingTime % 60).padStart(2, '0')}
+                  </span>
+                  <button type="button" onClick={cancelRecording} className="text-red-500 p-2 transition-all hover:scale-110">✕</button>
+                  <button type="button" onClick={stopRecording} className="text-green-500 p-2 transition-all hover:scale-110">●</button>
                 </div>
               )}
-
-              <input
-                type="text"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder={isRecording ? 'Запись...' : 'Сообщение...'}
-                className={`flex-1 p-2 rounded-xl text-sm ${isLight ? 'bg-gray-200 text-black' : 'bg-white/10 text-white'}`}
-                disabled={isRecording || isUploadingVoice}
-              />
-              
-              {!isRecording && (
-                <button type="submit" disabled={isSending} className={`p-2 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>
-                  ➤
-                </button>
-              )}
             </form>
-
-            {deleteButton && (
-              <div className="fixed z-50" style={{ top: deleteButton.y - 20, left: deleteButton.x }}>
-                <button onClick={() => deleteMessage(deleteButton.messageId)} className="bg-red-600 text-white p-2 rounded-full shadow-lg">🗑</button>
-              </div>
-            )}
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <span className={isLight ? 'text-gray-600' : 'text-gray-400'}>Выберите чат</span>
+          <div className="flex-1 flex items-center justify-center flex-col gap-4">
+            <div className="relative">
+              <GhostIcon className={`w-32 h-36 ${isLight ? 'text-[var(--accent)]' : 'text-white'} opacity-30`} size="large" />
+              <div className="absolute inset-0 -m-8 rounded-full border-4 border-[var(--accent)] animate-ping opacity-10"></div>
+            </div>
+            
+            <span className="text-2xl font-bold text-[var(--accent)]">Whisp</span>
+            <span className={`text-sm ${isLight ? 'text-gray-400' : 'text-gray-500'}`}>
+              👻 Выберите чат
+            </span>
           </div>
         )}
       </div>
 
-      {/* Аудио для звонков */}
-      <audio ref={audioRef} autoPlay style={{ display: 'none' }} />
+      {/* МОДАЛКА ПРОФИЛЯ */}
+      {isProfileOpen && (
+        <UserProfileModal
+          username={profileUsername}
+          currentUsername={username}
+          onClose={() => setIsProfileOpen(false)}
+          theme={theme}
+          avatarUrl={avatarUrl}
+        />
+      )}
 
+      {/* МОДАЛКА НАСТРОЕК */}
       {isSettingsOpen && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className={`rounded-2xl max-w-md w-full p-6 ${isLight ? 'bg-white' : 'bg-gray-900'}`}>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className={`text-xl font-bold ${isLight ? 'text-black' : 'text-white'}`}>Настройки</h2>
-              <button onClick={() => setIsSettingsOpen(false)} className={isLight ? 'text-gray-600' : 'text-gray-400'}>✕</button>
-            </div>
-
-            <div className="mb-6 text-center">
-              <p className={isLight ? 'text-gray-600' : 'text-gray-400'}>Вы вошли как</p>
-              <p className={`text-xl font-bold mb-3 ${isLight ? 'text-black' : 'text-white'}`}>{username}</p>
-              <button onClick={handleLogout} className="px-6 py-2 rounded-xl bg-red-600 text-white">Выйти</button>
-            </div>
-
-            <div className="mb-6">
-              <p className={`text-sm mb-2 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>Аватарка</p>
-              <div className="flex items-center gap-4">
-                <div className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center text-white text-3xl font-bold" style={{ backgroundColor: isLight ? '#333' : darkenColor(chatColor, 0.6) }}>
-                  {avatarUrl ? <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" /> : username.charAt(0).toUpperCase()}
-                </div>
-                <label className={`cursor-pointer text-white px-4 py-2 rounded-xl ${isUploadingAvatar ? 'opacity-50' : ''}`} style={{ backgroundColor: isLight ? '#333' : darkenColor(chatColor, 0.6) }}>
-                  {isUploadingAvatar ? 'Загрузка...' : 'Изменить'}
-                  <input type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} disabled={isUploadingAvatar} />
-                </label>
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <p className={`text-sm mb-2 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>Цветовая тема</p>
-              <div className="flex flex-wrap gap-2">
-                {['#ffffff', '#1c1515', '#1a1a2e', '#16213e', '#0f3460', '#4a2c2c', '#2d4a2c', '#4a2c4a', '#2c4a4a'].map((color) => (
-                  <button
-                    key={color}
-                    onClick={() => { setChatColor(color); localStorage.setItem('chatColor', color); }}
-                    className={`w-10 h-10 rounded-full border-2 ${chatColor === color ? 'border-white' : 'border-transparent'}`}
-                    style={{ backgroundColor: color }}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+        <SettingsModal
+          username={username}
+          avatarUrl={avatarUrl}
+          setAvatarUrl={setAvatarUrl}
+          onClose={() => setIsSettingsOpen(false)}
+          theme={theme}
+          setTheme={setTheme}
+          accentColor={accentColor}
+          setAccentColor={setAccentColor}
+          setIsAuth={() => {
+            localStorage.removeItem('whisp_username');
+            window.location.reload();
+          }}
+        />
       )}
     </div>
   );

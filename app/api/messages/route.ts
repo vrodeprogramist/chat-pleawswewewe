@@ -1,79 +1,103 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
+// ============================================================
+// GET — получить сообщения чата
+// ============================================================
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const chatId = searchParams.get('chatId');
 
     if (!chatId) {
-      return NextResponse.json({ error: 'chatId required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'chatId is required' },
+        { status: 400 }
+      );
     }
 
     const { data, error } = await supabase
       .from('messages')
       .select('*')
       .eq('chat_id', parseInt(chatId))
-      .order('timestamp', { ascending: true })
-      .limit(100);
+      .order('created_at', { ascending: true });
 
     if (error) {
-      console.error('Ошибка загрузки сообщений:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('❌ Ошибка загрузки сообщений:', error);
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      );
     }
 
-    // Получаем аватарки для всех пользователей из таблицы users
-    const usernames = [...new Set(data.map((m: any) => m.username))];
-    const { data: users } = await supabase
-      .from('users')
-      .select('username, avatar_url')
-      .in('username', usernames);
-
-    const avatarMap = users?.reduce((acc: any, user: any) => {
-      acc[user.username] = user.avatar_url;
-      return acc;
-    }, {});
-
-    const messagesWithAvatars = data.map((msg: any) => ({
-      ...msg,
-      avatar_url: avatarMap?.[msg.username] || null,
-    }));
-
-    return NextResponse.json(messagesWithAvatars);
+    return NextResponse.json(data || []);
   } catch (error) {
-    console.error('Ошибка в GET messages:', error);
-    return NextResponse.json({ error: 'Внутренняя ошибка' }, { status: 500 });
+    console.error('❌ Ошибка GET /api/messages:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 
+// ============================================================
+// POST — отправить сообщение
+// ============================================================
 export async function POST(request: Request) {
   try {
-    const { chatId, username, text, type, replyTo, fileName, avatar_url } = await request.json();
+    const body = await request.json();
+    console.log('📩 POST /api/messages body:', body);
 
-    if (!chatId) {
-      return NextResponse.json({ error: 'chatId required' }, { status: 400 });
+    const { chatId, username, text, type, avatar_url, tempId, fileName, duration } = body;
+
+    if (!chatId || !username || !text) {
+      console.error('❌ Не все данные:', { chatId, username, text });
+      return NextResponse.json(
+        { error: 'chatId, username, text are required' },
+        { status: 400 }
+      );
     }
 
-    const { error } = await supabase
+    // Сохраняем сообщение в БД
+    const { data, error } = await supabase
       .from('messages')
-      .insert([{
-        chat_id: chatId,
+      .insert({
+        chat_id: parseInt(chatId),
         username,
         text,
         type: type || 'text',
-        replyTo: replyTo || null,
-        fileName: fileName || null,
         avatar_url: avatar_url || null,
-      }]);
+        temp_id: tempId || null,
+        file_name: fileName || null,
+        duration: duration || null,
+      })
+      .select()
+      .single();
 
     if (error) {
-      console.error('Ошибка вставки:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('❌ Ошибка вставки сообщения:', error);
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json({ success: true });
+    // Обновляем last_message в чате
+    await supabase
+      .from('chats')
+      .update({
+        last_message: text,
+        last_message_time: new Date().toISOString(),
+      })
+      .eq('id', parseInt(chatId));
+
+    console.log('✅ Сообщение сохранено:', data);
+    return NextResponse.json(data);
   } catch (error) {
-    console.error('Ошибка в POST messages:', error);
-    return NextResponse.json({ error: 'Внутренняя ошибка' }, { status: 500 });
+    console.error('❌ Ошибка POST /api/messages:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
