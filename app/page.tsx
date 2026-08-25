@@ -677,7 +677,7 @@ export default function Home() {
 }
 
 // ============================================================
-// ОСНОВНОЙ ЧАТ - С МОБИЛЬНОЙ ВЕРСИЕЙ
+// ОСНОВНОЙ ЧАТ - ВСЕ КНОПКИ РАБОТАЮТ!
 // ============================================================
 function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any) {
   const [chats, setChats] = useState<Chat[]>([]);
@@ -1225,7 +1225,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }, 200);
   };
 
-  // Для мобильных - тап по сообщению
+  // Для мобильных - тап по сообщению (toggle)
   const handleMessageTap = (messageId: number | string) => {
     if (hoveredMessageId === messageId) {
       setHoveredMessageId(null);
@@ -1370,6 +1370,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
         }`}
         onMouseEnter={() => handleMouseEnter(msg.id || msg.tempId || key)}
         onMouseLeave={handleMouseLeave}
+        onTouchStart={() => isMobile && handleMessageTap(msg.id || msg.tempId || key)}
         onClick={() => isMobile && handleMessageTap(msg.id || msg.tempId || key)}
       >
         {!isMy && (
@@ -1396,7 +1397,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
               <div className={`flex items-center gap-1 flex-shrink-0 ${isMy ? 'order-first' : 'order-last'}`}>
                 {isMy && (
                   <button
-                    onClick={() => deleteMessage(msg.id || msg.tempId || key)}
+                    onClick={(e) => { e.stopPropagation(); deleteMessage(msg.id || msg.tempId || key); }}
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-base transition-all hover:scale-110 ${
                       isLight ? 'bg-gray-200 text-gray-600 hover:bg-gray-300' : 'bg-[#2b2b2b] text-gray-400 hover:bg-[#3b3b3b]'
                     }`}
@@ -1416,7 +1417,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   {['❤️', '🔥', '😂', '😢', '👍'].map((emoji) => (
                     <button
                       key={`${msg.id}-${emoji}`}
-                      onClick={() => toggleReaction(msg.id || msg.tempId || key, emoji)}
+                      onClick={(e) => { e.stopPropagation(); toggleReaction(msg.id || msg.tempId || key, emoji); }}
                       className={`w-8 h-8 flex items-center justify-center rounded-full text-base transition-all hover:scale-125 active:scale-90 ${
                         userReaction === emoji ? 'bg-[var(--accent)]/30 scale-110' : ''
                       } ${isAnimating ? 'animate-bounce' : ''}`}
@@ -1636,7 +1637,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
               zIndex: 100
             }}>
               <button 
-                onClick={() => setMobileTab('chats')}
+                onClick={() => { setMobileTab('chats'); setMobileView('chats'); }}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -1982,7 +1983,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                     </svg>
                   </button>
                   <button 
-                    onClick={sendMessage} 
+                    onClick={(e) => { e.preventDefault(); sendMessage(); }} 
                     disabled={isSending || !text.trim()}
                     style={{
                       padding: '10px 16px',
@@ -2259,4 +2260,4 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
       )}
     </div>
   );
-            }
+                  }
