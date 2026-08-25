@@ -138,7 +138,6 @@ function UserProfileModal({
   const isOwnProfile = targetUsername === currentUsername;
   const isLight = theme === 'light';
 
-  // Используем переданный avatarUrl для своего профиля
   const displayAvatarUrl = isOwnProfile ? propAvatarUrl : profile?.avatar_url;
 
   useEffect(() => {
@@ -220,7 +219,6 @@ function UserProfileModal({
         </div>
 
         <div className="text-center">
-          {/* Аватар */}
           <div className="w-24 h-24 rounded-full overflow-hidden mx-auto" style={{ backgroundColor: displayAvatarUrl ? 'transparent' : getAvatarColor(profile.username) }}>
             {displayAvatarUrl ? (
               <img src={displayAvatarUrl} alt={profile.username} className="w-full h-full object-cover" />
@@ -239,17 +237,6 @@ function UserProfileModal({
             <span>📅</span>
             <span>Присоединился: {formatDate(profile.created_at)}</span>
           </div>
-
-          {profile.bio && (
-            <p className={`text-sm mt-3 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>
-              {profile.bio}
-            </p>
-          )}
-          {!profile.bio && (
-            <p className={`text-sm mt-3 ${isLight ? 'text-gray-400' : 'text-gray-500'} italic`}>
-              Описание не добавлено
-            </p>
-          )}
         </div>
 
         {!isOwnProfile && (
@@ -280,45 +267,9 @@ function SettingsModal({
   setAccentColor,
   setIsAuth 
 }: any) {
-  const [bio, setBio] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const isLight = theme === 'light';
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const res = await fetch(`/api/profile?username=${username}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.bio) setBio(data.bio);
-        }
-      } catch (error) {
-        console.error('Ошибка:', error);
-      }
-    };
-    loadProfile();
-  }, [username]);
-
-  const handleSaveProfile = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/profile/update', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, bio }),
-      });
-      if (res.ok) {
-        setIsEditing(false);
-        alert('Профиль обновлен!');
-      }
-    } catch (error) {
-      console.error('Ошибка:', error);
-    }
-    setLoading(false);
-  };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -359,11 +310,6 @@ function SettingsModal({
             const data = await res.json();
             setAvatarUrl(data.avatarUrl);
             localStorage.setItem(`whisp_avatar_${username}`, data.avatarUrl);
-            
-            // ОТПРАВЛЯЕМ СОБЫТИЕ ДЛЯ ОБНОВЛЕНИЯ АВАТАРКИ ВО ВСЁМ ПРИЛОЖЕНИИ
-            window.dispatchEvent(new Event('avatar-updated'));
-            
-            alert('Аватар обновлен!');
           }
         } catch (error) {
           console.error('Ошибка:', error);
@@ -421,69 +367,32 @@ function SettingsModal({
         </div>
 
         <div className="space-y-4">
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <p className={`text-sm font-medium ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>📝 Описание</p>
-              {!isEditing && (
-                <button 
-                  onClick={() => setIsEditing(true)}
-                  className={`text-xs ${isLight ? 'text-[var(--accent)]' : 'text-[var(--accent)]'} hover:underline`}
-                >
-                  Редактировать
-                </button>
-              )}
-            </div>
-            {isEditing ? (
-              <div className="space-y-2">
-                <textarea
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  maxLength={200}
-                  className={`w-full p-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all duration-300 ${isLight ? 'bg-gray-100 text-gray-900' : 'bg-[#2b2b2b] text-white'}`}
-                  rows={3}
-                  placeholder="Расскажите о себе..."
-                />
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleSaveProfile}
-                    disabled={loading}
-                    className="flex-1 py-2 rounded-xl text-white text-sm font-semibold transition-all duration-300 hover:opacity-80 disabled:opacity-50"
-                    style={{ backgroundColor: 'var(--accent)' }}
-                  >
-                    {loading ? 'Сохранение...' : 'Сохранить'}
-                  </button>
-                  <button
-                    onClick={() => { setIsEditing(false); }}
-                    className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${isLight ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' : 'bg-[#2b2b2b] text-gray-300 hover:bg-[#3b3b3b]'}`}
-                  >
-                    Отмена
-                  </button>
-                </div>
-                <p className={`text-xs ${isLight ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {bio.length}/200
-                </p>
-              </div>
-            ) : (
-              <p className={`text-sm ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>
-                {bio || 'Описание не добавлено'}
-              </p>
-            )}
-          </div>
-
           <hr className={`${isLight ? 'border-gray-200' : 'border-[#2b2b2b]'}`} />
 
-          <div>
-            <p className={`text-sm font-medium mb-2 ${isLight ? 'text-black-700' : 'text-gray-300'}`}>🎨 Тема</p>
+           <div>
+            <p className={`text-sm font-medium mb-2 ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>🎨 Тема</p>
             <div className="flex gap-2">
               <button 
                 onClick={() => { setTheme('dark'); localStorage.setItem('whisp_theme', 'dark'); }} 
-                className={`px-4 py-2 rounded-xl transition-all duration-300 ${theme === 'dark' ? 'bg-[var(--accent)] text-white' : isLight ? 'bg-gray-200' : 'bg-[#22b2b]'}`}
+                className={`px-4 py-2 rounded-xl transition-all duration-300 ${
+                  theme === 'dark' 
+                    ? 'bg-[var(--accent)] text-white' 
+                    : isLight 
+                      ? 'bg-gray-200 text-gray-900' 
+                      : 'bg-[#2b2b2b] text-white'
+                }`}
               >
                 🌙 Тёмная
               </button>
               <button 
                 onClick={() => { setTheme('light'); localStorage.setItem('whisp_theme', 'light'); }} 
-                className={`px-4 py-2 rounded-xl transition-all duration-300 ${theme === 'light' ? 'bg-[var(--accent)] text-white' : isLight ? 'bg-gray-200' : 'bg-[#2b2b2b]'}`}
+                className={`px-4 py-2 rounded-xl transition-all duration-300 ${
+                  theme === 'light' 
+                    ? 'bg-[var(--accent)] text-white' 
+                    : isLight 
+                      ? 'bg-gray-200 text-gray-900' 
+                      : 'bg-[#2b2b2b] text-white'
+                }`}
               >
                 ☀️ Светлая
               </button>
@@ -766,7 +675,7 @@ export default function Home() {
 }
 
 // ============================================================
-// ОСНОВНОЙ ЧАТ - С ИСПРАВЛЕННОЙ АВАТАРКОЙ
+// ОСНОВНОЙ ЧАТ - С ПРАВИЛЬНОЙ АВАТАРКОЙ (БЕЗ ОПИСАНИЯ)
 // ============================================================
 function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any) {
   const [chats, setChats] = useState<Chat[]>([]);
@@ -809,32 +718,10 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   };
 
   // ============================================================
-  // ФУНКЦИЯ ПРИНУДИТЕЛЬНОГО ОБНОВЛЕНИЯ АВАТАРКИ
-  // ============================================================
-  const forceUpdateAvatar = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/profile?username=${username}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.avatarUrl) {
-          setAvatarUrl(data.avatarUrl);
-          localStorage.setItem(`whisp_avatar_${username}`, data.avatarUrl);
-        } else {
-          setAvatarUrl(null);
-          localStorage.removeItem(`whisp_avatar_${username}`);
-        }
-      }
-    } catch (error) {
-      console.error('Ошибка принудительного обновления аватара:', error);
-    }
-  }, [username]);
-
-  // ============================================================
   // ЗАГРУЗКА АВАТАРКИ
   // ============================================================
   const loadAvatar = async () => {
     try {
-      // Сначала проверяем localStorage
       const cached = localStorage.getItem(`whisp_avatar_${username}`);
       if (cached) {
         setAvatarUrl(cached);
@@ -1532,7 +1419,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                 </svg>
               </button>
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                {/* АВАТАРКА В ШАПКЕ */}
                 <div 
                   className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 cursor-pointer bg-[var(--accent)] flex items-center justify-center text-white font-bold"
                   onClick={() => handleProfileClick(currentChatUser)}
@@ -1593,7 +1479,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                       </div>
                     )}
 
-                    {/* БЛОК СООБЩЕНИЯ */}
                     <div className={`max-w-[80%] ${isMy ? 'flex flex-col items-end' : ''}`}>
                       {!isMy && (
                         <span 
