@@ -310,6 +310,8 @@ function SettingsModal({
             const data = await res.json();
             setAvatarUrl(data.avatarUrl);
             localStorage.setItem(`whisp_avatar_${username}`, data.avatarUrl);
+            window.dispatchEvent(new Event('avatar-updated'));
+            alert('Аватар обновлен!');
           }
         } catch (error) {
           console.error('Ошибка:', error);
@@ -369,7 +371,7 @@ function SettingsModal({
         <div className="space-y-4">
           <hr className={`${isLight ? 'border-gray-200' : 'border-[#2b2b2b]'}`} />
 
-           <div>
+          <div>
             <p className={`text-sm font-medium mb-2 ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>🎨 Тема</p>
             <div className="flex gap-2">
               <button 
@@ -675,7 +677,7 @@ export default function Home() {
 }
 
 // ============================================================
-// ОСНОВНОЙ ЧАТ - С ПРАВИЛЬНОЙ АВАТАРКОЙ (БЕЗ ОПИСАНИЯ)
+// ОСНОВНОЙ ЧАТ - С МОБИЛЬНОЙ ВЕРСИЕЙ
 // ============================================================
 function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any) {
   const [chats, setChats] = useState<Chat[]>([]);
@@ -693,6 +695,11 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [deletingMessageId, setDeletingMessageId] = useState<number | string | null>(null);
+
+  // Мобильное состояние
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileView, setMobileView] = useState<'chats' | 'chat'>('chats');
+  const [mobileTab, setMobileTab] = useState<'chats' | 'search' | 'settings'>('chats');
 
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -716,6 +723,16 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#FF8A5C', '#A29BFE'];
     return colors[name.charCodeAt(0) % colors.length];
   };
+
+  // Проверка мобильного устройства
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // ============================================================
   // ЗАГРУЗКА АВАТАРКИ
@@ -744,10 +761,8 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
-  // Слушаем события обновления аватарки
   useEffect(() => {
     const handleAvatarUpdate = () => {
-      console.log('Обновление аватарки...');
       loadAvatar();
     };
     
@@ -851,9 +866,24 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
         setCurrentChatId(chatId);
         setCurrentChatUser(otherUser);
         await loadMessages(chatId);
+        if (isMobile) {
+          setMobileView('chat');
+        }
       }
     } catch (error) {
       console.error('Ошибка создания чата:', error);
+    }
+  };
+
+  // ============================================================
+  // ВЫБОР ЧАТА (МОБИЛЬНАЯ ВЕРСИЯ)
+  // ============================================================
+  const handleChatSelect = (chat: any) => {
+    setCurrentChatId(chat.id);
+    setCurrentChatUser(chat.otherUser);
+    loadMessages(chat.id);
+    if (isMobile) {
+      setMobileView('chat');
     }
   };
 
@@ -1299,7 +1329,622 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   };
 
   // ============================================================
-  // РЕНДЕР
+  // МОБИЛЬНЫЙ РЕНДЕР
+  // ============================================================
+  if (isMobile) {
+    const bgColor = isLight ? '#ffffff' : '#0a0a0a';
+    const bgSecondary = isLight ? '#f0f2f5' : '#1c1c1e';
+    const textPrimary = isLight ? '#000000' : '#ffffff';
+    const textSecondary = isLight ? '#8e8e93' : '#8e8e93';
+    const bubbleBg = isLight ? '#e9e9eb' : '#2c2c2e';
+    const borderColor = isLight ? '#d1d1d6' : '#38383a';
+    const headerBg = isLight ? 'rgba(255,255,255,0.9)' : 'rgba(28,28,30,0.9)';
+    const inputFieldBg = isLight ? '#f0f0f0' : '#2c2c2e';
+    const tabBg = isLight ? 'rgba(255,255,255,0.95)' : 'rgba(28,28,30,0.95)';
+    const tabIcon = isLight ? '#8e8e93' : '#8e8e93';
+    const messagesBg = isLight ? '#f0f2f5' : '#0a0a0a';
+
+    return (
+      <div style={{ 
+        backgroundColor: bgColor,
+        color: textPrimary,
+        height: '100dvh',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        position: 'relative'
+      }}>
+        {/* СПИСОК ЧАТОВ */}
+        {mobileView === 'chats' && (
+          <>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px 16px',
+              paddingTop: 'max(12px, env(safe-area-inset-top))',
+              background: headerBg,
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              borderBottom: `1px solid ${borderColor}`,
+              flexShrink: 0,
+              position: 'sticky',
+              top: 0,
+              zIndex: 50
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div 
+                  onClick={() => handleProfileClick(username)}
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    background: accentColor,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontWeight: 600,
+                    fontSize: '16px',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    flexShrink: 0
+                  }}
+                >
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    username?.charAt(0).toUpperCase() || '?'
+                  )}
+                </div>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '18px' }}>Whisp</div>
+                  <div style={{ fontSize: '12px', color: textSecondary }}>👻 {username}</div>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsSettingsOpen(true)}
+                style={{
+                  padding: '8px',
+                  border: 'none',
+                  background: 'none',
+                  color: textPrimary,
+                  cursor: 'pointer'
+                }}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                </svg>
+              </button>
+            </div>
+
+            <div style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: '8px 12px',
+              paddingBottom: '80px',
+              backgroundColor: bgColor
+            }}>
+              {chats.map((chat) => {
+                const name = chat.otherUser;
+                return (
+                  <div
+                    key={chat.id}
+                    onClick={() => handleChatSelect(chat)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      marginBottom: '2px',
+                      backgroundColor: 'transparent'
+                    }}
+                  >
+                    <div style={{
+                      width: '52px',
+                      height: '52px',
+                      borderRadius: '50%',
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '20px',
+                      fontWeight: 600,
+                      color: 'white',
+                      background: accentColor
+                    }}>
+                      {name?.charAt(0).toUpperCase() || '?'}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 500, fontSize: '16px', color: textPrimary }}>{name}</div>
+                      {chat.lastMessage && (
+                        <div style={{ fontSize: '13px', color: textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {chat.lastMessage}
+                        </div>
+                      )}
+                    </div>
+                    {chat.lastMessageTime && (
+                      <div style={{ fontSize: '11px', color: textSecondary, flexShrink: 0, marginLeft: '8px' }}>
+                        {formatTime(new Date(chat.lastMessageTime).toISOString())}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{
+              position: 'fixed',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              display: 'flex',
+              justifyContent: 'space-around',
+              alignItems: 'center',
+              padding: '8px 0',
+              paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
+              background: tabBg,
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              borderTop: `1px solid ${borderColor}`,
+              zIndex: 100
+            }}>
+              <button 
+                onClick={() => setMobileTab('chats')}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '2px',
+                  padding: '4px 16px',
+                  border: 'none',
+                  background: 'none',
+                  color: mobileTab === 'chats' ? accentColor : tabIcon,
+                  fontSize: '10px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  position: 'relative'
+                }}
+              >
+                <svg width="26" height="26" viewBox="0 0 24 24" fill={mobileTab === 'chats' ? accentColor : 'none'} stroke="currentColor" strokeWidth="2">
+                  <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                </svg>
+                <span>Чаты</span>
+              </button>
+
+              <button 
+                onClick={() => {
+                  setIsSearchOpen(!isSearchOpen);
+                  if (isSearchOpen) setMobileTab('search');
+                }}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '2px',
+                  padding: '4px 16px',
+                  border: 'none',
+                  background: 'none',
+                  color: mobileTab === 'search' ? accentColor : tabIcon,
+                  fontSize: '10px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  position: 'relative'
+                }}
+              >
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <span>Поиск</span>
+              </button>
+
+              <button 
+                onClick={() => handleProfileClick(username)}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '2px',
+                  padding: '4px 16px',
+                  border: 'none',
+                  background: 'none',
+                  color: tabIcon,
+                  fontSize: '10px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  position: 'relative'
+                }}
+              >
+                <div style={{
+                  width: '26px',
+                  height: '26px',
+                  borderRadius: '50%',
+                  background: accentColor,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  overflow: 'hidden'
+                }}>
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    username?.charAt(0).toUpperCase() || '?'
+                  )}
+                </div>
+                <span>Профиль</span>
+              </button>
+
+              <button 
+                onClick={() => setIsSettingsOpen(true)}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '2px',
+                  padding: '4px 16px',
+                  border: 'none',
+                  background: 'none',
+                  color: mobileTab === 'settings' ? accentColor : tabIcon,
+                  fontSize: '10px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  position: 'relative'
+                }}
+              >
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                </svg>
+                <span>Настройки</span>
+              </button>
+            </div>
+
+            {/* Поиск overlay */}
+            {isSearchOpen && (
+              <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: bgColor,
+                zIndex: 200,
+                padding: '20px 16px',
+                paddingTop: 'max(20px, env(safe-area-inset-top))'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                  <button 
+                    onClick={() => { setIsSearchOpen(false); setMobileTab('chats'); }}
+                    style={{
+                      padding: '8px',
+                      border: 'none',
+                      background: 'none',
+                      color: textPrimary,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M15 18l-6-6 6-6"/>
+                    </svg>
+                  </button>
+                  <input
+                    type="text"
+                    placeholder="Поиск..."
+                    value={searchQuery}
+                    onChange={(e) => { 
+                      setSearchQuery(e.target.value); 
+                      searchUsers(e.target.value); 
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '10px 14px',
+                      borderRadius: '20px',
+                      border: 'none',
+                      background: inputFieldBg,
+                      color: textPrimary,
+                      fontSize: '15px',
+                      outline: 'none'
+                    }}
+                    autoFocus
+                  />
+                </div>
+                {searchResults.length > 0 && (
+                  <div>
+                    {searchResults.map((user) => (
+                      <div
+                        key={user.username}
+                        onClick={() => createChat(user.username)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          padding: '12px 14px',
+                          borderRadius: '12px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <div style={{
+                          width: '44px',
+                          height: '44px',
+                          borderRadius: '50%',
+                          background: accentColor,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white',
+                          fontSize: '18px',
+                          fontWeight: 600
+                        }}>
+                          {user.username?.charAt(0).toUpperCase() || '?'}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 500, color: textPrimary }}>{user.username}</div>
+                          <div style={{ fontSize: '12px', color: textSecondary }}>Начать чат</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {searchResults.length === 0 && searchQuery && (
+                  <div style={{ textAlign: 'center', color: textSecondary, marginTop: '40px' }}>
+                    Пользователи не найдены
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ЧАТ */}
+        {mobileView === 'chat' && currentChatId && (
+          <>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              padding: '8px 12px',
+              paddingTop: 'max(8px, env(safe-area-inset-top))',
+              background: headerBg,
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              borderBottom: `1px solid ${borderColor}`,
+              gap: '10px',
+              flexShrink: 0,
+              position: 'sticky',
+              top: 0,
+              zIndex: 50
+            }}>
+              <button 
+                onClick={() => {
+                  setMobileView('chats');
+                  setCurrentChatId(null);
+                }}
+                style={{
+                  padding: '6px',
+                  border: 'none',
+                  background: 'none',
+                  color: textPrimary,
+                  cursor: 'pointer'
+                }}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M15 18l-6-6 6-6"/>
+                </svg>
+              </button>
+              <div 
+                onClick={() => handleProfileClick(currentChatUser)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  flex: 1,
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  background: accentColor,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontWeight: 600,
+                  fontSize: '16px',
+                  overflow: 'hidden',
+                  flexShrink: 0
+                }}>
+                  {currentChatUser === username && avatarUrl ? (
+                    <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    currentChatUser?.charAt(0).toUpperCase() || '?'
+                  )}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 500, fontSize: '16px', color: textPrimary }}>{currentChatUser}</div>
+                  <div style={{ fontSize: '12px', color: textSecondary }}>👻 Нажмите для профиля</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: '12px 16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              backgroundColor: messagesBg
+            }}>
+              {messages.map((msg) => {
+                const isMy = msg.username === username;
+                const msgReactions = msg.reactions || [];
+                const groupedReactions = msgReactions.reduce((acc: any, r: Reaction) => {
+                  acc[r.reaction] = (acc[r.reaction] || 0) + 1;
+                  return acc;
+                }, {});
+                const isPending = msg.tempId ? pendingMessages.has(msg.tempId) : false;
+                const key = msg.id || msg.tempId || `msg-${Math.random()}`;
+
+                return (
+                  <div
+                    key={key}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: isMy ? 'flex-end' : 'flex-start',
+                      maxWidth: '85%',
+                      alignSelf: isMy ? 'flex-end' : 'flex-start'
+                    }}
+                  >
+                    <div style={{
+                      padding: '10px 14px',
+                      borderRadius: '16px',
+                      backgroundColor: isMy ? accentColor : bubbleBg,
+                      color: isMy ? 'white' : textPrimary,
+                      borderBottomRightRadius: isMy ? '4px' : '16px',
+                      borderBottomLeftRadius: isMy ? '16px' : '4px',
+                      fontSize: '15px',
+                      lineHeight: '1.4',
+                      wordWrap: 'break-word',
+                      maxWidth: '100%'
+                    }}>
+                      {msg.type === 'text' && msg.text}
+                      {isPending && (
+                        <span style={{ marginLeft: '8px', fontSize: '12px', opacity: 0.6 }}>⏳</span>
+                      )}
+                    </div>
+                    {Object.keys(groupedReactions).length > 0 && !isPending && (
+                      <div style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '4px',
+                        marginTop: '4px',
+                        fontSize: '12px'
+                      }}>
+                        {Object.entries(groupedReactions).map(([emoji, count]) => (
+                          <span key={emoji} style={{
+                            padding: '2px 8px',
+                            borderRadius: '12px',
+                            background: isLight ? '#e9e9eb' : '#2c2c2e',
+                            color: textPrimary
+                          }}>
+                            {emoji} {count as number}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div style={{
+                      fontSize: '10px',
+                      color: textSecondary,
+                      marginTop: '2px',
+                      padding: '0 4px'
+                    }}>
+                      {formatTime(msg.created_at)}
+                    </div>
+                  </div>
+                );
+              })}
+              <div ref={messagesEndRef} />
+            </div>
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'flex-end',
+              gap: '8px',
+              padding: '8px 12px',
+              paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
+              background: headerBg,
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              borderTop: `1px solid ${borderColor}`,
+              flexShrink: 0
+            }}>
+              <label style={{ cursor: 'pointer', padding: '4px' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: textSecondary }}>
+                  <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileUpload} accept="image/*,video/*" />
+              </label>
+
+              {!isRecording ? (
+                <>
+                  <input 
+                    type="text" 
+                    value={text} 
+                    onChange={(e) => setText(e.target.value)} 
+                    placeholder="Сообщение..." 
+                    style={{
+                      flex: 1,
+                      padding: '10px 14px',
+                      borderRadius: '20px',
+                      border: 'none',
+                      background: inputFieldBg,
+                      color: textPrimary,
+                      fontSize: '15px',
+                      outline: 'none',
+                      minHeight: '40px'
+                    }}
+                  />
+                  <button 
+                    type="button" 
+                    onClick={startRecording}
+                    style={{
+                      padding: '8px',
+                      border: 'none',
+                      background: 'none',
+                      color: textSecondary,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+                    </svg>
+                  </button>
+                  <button 
+                    onClick={sendMessage} 
+                    disabled={isSending || !text.trim()}
+                    style={{
+                      padding: '10px 16px',
+                      borderRadius: '50%',
+                      border: 'none',
+                      background: accentColor,
+                      color: 'white',
+                      cursor: 'pointer',
+                      opacity: isSending || !text.trim() ? 0.5 : 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                    </svg>
+                  </button>
+                </>
+              ) : (
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '14px', fontFamily: 'monospace', color: textPrimary }}>
+                    {String(Math.floor(recordingTime / 60)).padStart(2, '0')}:{String(recordingTime % 60).padStart(2, '0')}
+                  </span>
+                  <button type="button" onClick={cancelRecording} style={{ color: 'red', padding: '4px', background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer' }}>✕</button>
+                  <button type="button" onClick={stopRecording} style={{ color: 'green', padding: '4px', background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer' }}>●</button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  // ============================================================
+  // ДЕСКТОПНЫЙ РЕНДЕР
   // ============================================================
   return (
     <div className={`h-dvh flex overflow-hidden ${isLight ? 'bg-gray-100' : 'bg-[#1c1515]'}`}>
