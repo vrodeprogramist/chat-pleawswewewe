@@ -1194,7 +1194,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   };
 
   // ============================================================
-  // HOVER
+  // HOVER - ДЛЯ ВСЕХ (ПК И МОБИЛЬНЫЙ)
   // ============================================================
   const handleMouseEnter = (messageId: number | string) => {
     setHoveredMessageId(messageId);
@@ -1223,6 +1223,17 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
       setShowReactionsId(null);
       leaveTimeoutRef.current = null;
     }, 200);
+  };
+
+  // Для мобильных - тап по сообщению
+  const handleMessageTap = (messageId: number | string) => {
+    if (hoveredMessageId === messageId) {
+      setHoveredMessageId(null);
+      setShowReactionsId(null);
+    } else {
+      setHoveredMessageId(messageId);
+      setShowReactionsId(messageId);
+    }
   };
 
   // ============================================================
@@ -1329,11 +1340,143 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   };
 
   // ============================================================
+  // ФУНКЦИЯ ДЛЯ ОТОБРАЖЕНИЯ СООБЩЕНИЯ (ОБЩАЯ ДЛЯ ПК И МОБИЛКИ)
+  // ============================================================
+  const renderMessage = (msg: Message) => {
+    const isMy = msg.username === username;
+    const msgReactions = msg.reactions || [];
+    const groupedReactions = msgReactions.reduce((acc: any, r: Reaction) => {
+      acc[r.reaction] = (acc[r.reaction] || 0) + 1;
+      return acc;
+    }, {});
+    const userReaction = msgReactions.find((r) => r.username === username)?.reaction;
+    const isDeleting = deletingMessageId === msg.id || deletingMessageId === msg.tempId;
+    const showReactions = showReactionsId === msg.id || showReactionsId === msg.tempId;
+    const isHovered = hoveredMessageId === msg.id || hoveredMessageId === msg.tempId;
+    const isAnimating = animatingReactionId === msg.id;
+    const isPending = msg.tempId ? pendingMessages.has(msg.tempId) : false;
+
+    const key = msg.id || msg.tempId || `msg-${Math.random()}`;
+
+    return (
+      <div
+        key={key}
+        className={`flex items-end gap-3 ${isMy ? 'flex-row-reverse' : ''} relative ${
+          isPending ? 'animate-pulse opacity-70' : ''
+        } ${
+          !isPending && !isDeleting ? 'animate-slideUp' : ''
+        } ${
+          isDeleting ? 'animate-delete' : ''
+        }`}
+        onMouseEnter={() => handleMouseEnter(msg.id || msg.tempId || key)}
+        onMouseLeave={handleMouseLeave}
+        onClick={() => isMobile && handleMessageTap(msg.id || msg.tempId || key)}
+      >
+        {!isMy && (
+          <div 
+            className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 cursor-pointer bg-[var(--accent)] flex items-center justify-center text-white font-bold text-sm"
+            onClick={() => handleProfileClick(msg.username)}
+          >
+            {msg.username?.charAt(0).toUpperCase() || '?'}
+          </div>
+        )}
+
+        <div className={`max-w-[80%] ${isMy ? 'flex flex-col items-end' : ''}`}>
+          {!isMy && (
+            <span 
+              className={`text-sm font-medium ml-2 mb-1 cursor-pointer hover:underline ${isLight ? 'text-gray-600' : 'text-gray-400'}`}
+              onClick={() => handleProfileClick(msg.username)}
+            >
+              {msg.username}
+            </span>
+          )}
+
+          <div className="relative flex items-center gap-2">
+            {isHovered && !isPending && !isDeleting && (
+              <div className={`flex items-center gap-1 flex-shrink-0 ${isMy ? 'order-first' : 'order-last'}`}>
+                {isMy && (
+                  <button
+                    onClick={() => deleteMessage(msg.id || msg.tempId || key)}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-base transition-all hover:scale-110 ${
+                      isLight ? 'bg-gray-200 text-gray-600 hover:bg-gray-300' : 'bg-[#2b2b2b] text-gray-400 hover:bg-[#3b3b3b]'
+                    }`}
+                    title="Удалить"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                )}
+
+                <div
+                  className={`flex gap-0.5 bg-[#1f1f1f] rounded-full px-2 py-1 shadow-lg border border-[#2f2f2f] z-10 transition-all duration-300 ${
+                    showReactions ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+                  }`}
+                >
+                  {['❤️', '🔥', '😂', '😢', '👍'].map((emoji) => (
+                    <button
+                      key={`${msg.id}-${emoji}`}
+                      onClick={() => toggleReaction(msg.id || msg.tempId || key, emoji)}
+                      className={`w-8 h-8 flex items-center justify-center rounded-full text-base transition-all hover:scale-125 active:scale-90 ${
+                        userReaction === emoji ? 'bg-[var(--accent)]/30 scale-110' : ''
+                      } ${isAnimating ? 'animate-bounce' : ''}`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div
+              className={`px-6 py-4 rounded-2xl text-base break-words ${
+                isMy 
+                  ? 'bg-[var(--accent)] text-white rounded-br-sm' 
+                  : isLight 
+                    ? 'bg-white text-gray-900 rounded-bl-sm shadow-md' 
+                    : 'bg-[#2b2b2b] text-white rounded-bl-sm'
+              }`}
+            >
+              {msg.type === 'image' && <img src={msg.text} alt="Фото" className="max-w-[300px] rounded-xl" />}
+              {msg.type === 'video' && <video src={msg.text} controls className="max-w-[300px] rounded-xl" />}
+              {msg.type === 'voice' && (
+                <div className="flex items-center gap-3">
+                  <audio controls src={msg.text} className="h-12" />
+                  {msg.duration && <span className="text-sm opacity-70">{msg.duration}с</span>}
+                </div>
+              )}
+              {(!msg.type || msg.type === 'text') && <span className="text-base">{msg.text}</span>}
+              {isPending && (
+                <span className="inline-block ml-2 text-xs opacity-50 animate-pulse">⏳</span>
+              )}
+            </div>
+          </div>
+
+          {Object.keys(groupedReactions).length > 0 && !isPending && (
+            <div className={`flex flex-wrap gap-1.5 mt-1 ${isMy ? 'justify-end' : ''}`}>
+              {Object.entries(groupedReactions).map(([emoji, count]) => (
+                <span key={`${msg.id}-${emoji}-count`} className={`text-sm px-2 py-0.5 rounded-full ${isLight ? 'bg-gray-200 text-gray-700' : 'bg-[#2b2b2b] text-gray-300'}`}>
+                  {emoji} {count as number}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className={`flex items-center gap-2 mt-1 ${isMy ? 'flex-row-reverse' : ''}`}>
+            <span className={`text-xs ${isLight ? 'text-gray-400' : 'text-gray-500'}`}>
+              {msg.tempId ? 'Отправка...' : formatTime(msg.created_at)}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ============================================================
   // МОБИЛЬНЫЙ РЕНДЕР
   // ============================================================
   if (isMobile) {
     const bgColor = isLight ? '#ffffff' : '#0a0a0a';
-    const bgSecondary = isLight ? '#f0f2f5' : '#1c1c1e';
     const textPrimary = isLight ? '#000000' : '#ffffff';
     const textSecondary = isLight ? '#8e8e93' : '#8e8e93';
     const bubbleBg = isLight ? '#e9e9eb' : '#2c2c2e';
@@ -1781,75 +1924,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
               gap: '6px',
               backgroundColor: messagesBg
             }}>
-              {messages.map((msg) => {
-                const isMy = msg.username === username;
-                const msgReactions = msg.reactions || [];
-                const groupedReactions = msgReactions.reduce((acc: any, r: Reaction) => {
-                  acc[r.reaction] = (acc[r.reaction] || 0) + 1;
-                  return acc;
-                }, {});
-                const isPending = msg.tempId ? pendingMessages.has(msg.tempId) : false;
-                const key = msg.id || msg.tempId || `msg-${Math.random()}`;
-
-                return (
-                  <div
-                    key={key}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: isMy ? 'flex-end' : 'flex-start',
-                      maxWidth: '85%',
-                      alignSelf: isMy ? 'flex-end' : 'flex-start'
-                    }}
-                  >
-                    <div style={{
-                      padding: '10px 14px',
-                      borderRadius: '16px',
-                      backgroundColor: isMy ? accentColor : bubbleBg,
-                      color: isMy ? 'white' : textPrimary,
-                      borderBottomRightRadius: isMy ? '4px' : '16px',
-                      borderBottomLeftRadius: isMy ? '16px' : '4px',
-                      fontSize: '15px',
-                      lineHeight: '1.4',
-                      wordWrap: 'break-word',
-                      maxWidth: '100%'
-                    }}>
-                      {msg.type === 'text' && msg.text}
-                      {isPending && (
-                        <span style={{ marginLeft: '8px', fontSize: '12px', opacity: 0.6 }}>⏳</span>
-                      )}
-                    </div>
-                    {Object.keys(groupedReactions).length > 0 && !isPending && (
-                      <div style={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: '4px',
-                        marginTop: '4px',
-                        fontSize: '12px'
-                      }}>
-                        {Object.entries(groupedReactions).map(([emoji, count]) => (
-                          <span key={emoji} style={{
-                            padding: '2px 8px',
-                            borderRadius: '12px',
-                            background: isLight ? '#e9e9eb' : '#2c2c2e',
-                            color: textPrimary
-                          }}>
-                            {emoji} {count as number}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    <div style={{
-                      fontSize: '10px',
-                      color: textSecondary,
-                      marginTop: '2px',
-                      padding: '0 4px'
-                    }}>
-                      {formatTime(msg.created_at)}
-                    </div>
-                  </div>
-                );
-              })}
+              {messages.map((msg) => renderMessage(msg))}
               <div ref={messagesEndRef} />
             </div>
 
@@ -2086,134 +2161,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
 
             {/* СООБЩЕНИЯ */}
             <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3 messages-container">
-              {messages.map((msg) => {
-                const isMy = msg.username === username;
-                const msgReactions = msg.reactions || [];
-                const groupedReactions = msgReactions.reduce((acc: any, r: Reaction) => {
-                  acc[r.reaction] = (acc[r.reaction] || 0) + 1;
-                  return acc;
-                }, {});
-                const userReaction = msgReactions.find((r) => r.username === username)?.reaction;
-                const isDeleting = deletingMessageId === msg.id || deletingMessageId === msg.tempId;
-                const showReactions = showReactionsId === msg.id || showReactionsId === msg.tempId;
-                const isHovered = hoveredMessageId === msg.id || hoveredMessageId === msg.tempId;
-                const isAnimating = animatingReactionId === msg.id;
-                const isPending = msg.tempId ? pendingMessages.has(msg.tempId) : false;
-
-                const key = msg.id || msg.tempId || `msg-${Math.random()}`;
-
-                return (
-                  <div
-                    key={key}
-                    className={`flex items-end gap-3 ${isMy ? 'flex-row-reverse' : ''} relative ${
-                      isPending ? 'animate-pulse opacity-70' : ''
-                    } ${
-                      !isPending && !isDeleting ? 'animate-slideUp' : ''
-                    } ${
-                      isDeleting ? 'animate-delete' : ''
-                    }`}
-                    onMouseEnter={() => handleMouseEnter(msg.id || msg.tempId || key)}
-                    onMouseLeave={handleMouseLeave}
-                  >
-                    {!isMy && (
-                      <div 
-                        className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 cursor-pointer bg-[var(--accent)] flex items-center justify-center text-white font-bold text-sm"
-                        onClick={() => handleProfileClick(msg.username)}
-                      >
-                        {msg.username?.charAt(0).toUpperCase() || '?'}
-                      </div>
-                    )}
-
-                    <div className={`max-w-[80%] ${isMy ? 'flex flex-col items-end' : ''}`}>
-                      {!isMy && (
-                        <span 
-                          className={`text-sm font-medium ml-2 mb-1 cursor-pointer hover:underline ${isLight ? 'text-gray-600' : 'text-gray-400'}`}
-                          onClick={() => handleProfileClick(msg.username)}
-                        >
-                          {msg.username}
-                        </span>
-                      )}
-
-                      <div className="relative flex items-center gap-2">
-                        {isHovered && !isPending && !isDeleting && (
-                          <div className={`flex items-center gap-1 flex-shrink-0 ${isMy ? 'order-first' : 'order-last'}`}>
-                            {isMy && (
-                              <button
-                                onClick={() => deleteMessage(msg.id || msg.tempId || key)}
-                                className={`w-8 h-8 rounded-full flex items-center justify-center text-base transition-all hover:scale-110 ${
-                                  isLight ? 'bg-gray-200 text-gray-600 hover:bg-gray-300' : 'bg-[#2b2b2b] text-gray-400 hover:bg-[#3b3b3b]'
-                                }`}
-                                title="Удалить"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
-                            )}
-
-                            <div
-                              className={`flex gap-0.5 bg-[#1f1f1f] rounded-full px-2 py-1 shadow-lg border border-[#2f2f2f] z-10 transition-all duration-300 ${
-                                showReactions ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-                              }`}
-                            >
-                              {['❤️', '🔥', '😂', '😢', '👍'].map((emoji) => (
-                                <button
-                                  key={`${msg.id}-${emoji}`}
-                                  onClick={() => toggleReaction(msg.id || msg.tempId || key, emoji)}
-                                  className={`w-8 h-8 flex items-center justify-center rounded-full text-base transition-all hover:scale-125 active:scale-90 ${
-                                    userReaction === emoji ? 'bg-[var(--accent)]/30 scale-110' : ''
-                                  } ${isAnimating ? 'animate-bounce' : ''}`}
-                                >
-                                  {emoji}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        <div
-                          className={`px-6 py-4 rounded-2xl text-base break-words ${
-                            isMy 
-                              ? 'bg-[var(--accent)] text-white rounded-br-sm' 
-                              : isLight 
-                                ? 'bg-white text-gray-900 rounded-bl-sm shadow-md' 
-                                : 'bg-[#2b2b2b] text-white rounded-bl-sm'
-                          }`}
-                        >
-                          {msg.type === 'image' && <img src={msg.text} alt="Фото" className="max-w-[300px] rounded-xl" />}
-                          {msg.type === 'video' && <video src={msg.text} controls className="max-w-[300px] rounded-xl" />}
-                          {msg.type === 'voice' && (
-                            <div className="flex items-center gap-3">
-                              <audio controls src={msg.text} className="h-12" />
-                              {msg.duration && <span className="text-sm opacity-70">{msg.duration}с</span>}
-                            </div>
-                          )}
-                          {(!msg.type || msg.type === 'text') && <span className="text-base">{msg.text}</span>}
-                          {isPending && (
-                            <span className="inline-block ml-2 text-xs opacity-50 animate-pulse">⏳</span>
-                          )}
-                        </div>
-                      </div>
-
-                      {Object.keys(groupedReactions).length > 0 && !isPending && (
-                        <div className={`flex flex-wrap gap-1.5 mt-1 ${isMy ? 'justify-end' : ''}`}>
-                          {Object.entries(groupedReactions).map(([emoji, count]) => (
-                            <span key={`${msg.id}-${emoji}-count`} className={`text-sm px-2 py-0.5 rounded-full ${isLight ? 'bg-gray-200 text-gray-700' : 'bg-[#2b2b2b] text-gray-300'}`}>
-                              {emoji} {count as number}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      <div className={`flex items-center gap-2 mt-1 ${isMy ? 'flex-row-reverse' : ''}`}>
-                        <span className={`text-xs ${isLight ? 'text-gray-400' : 'text-gray-500'}`}>
-                          {msg.tempId ? 'Отправка...' : formatTime(msg.created_at)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+              {messages.map((msg) => renderMessage(msg))}
               <div ref={messagesEndRef} />
             </div>
 
@@ -2311,4 +2259,4 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
       )}
     </div>
   );
-}
+            }
