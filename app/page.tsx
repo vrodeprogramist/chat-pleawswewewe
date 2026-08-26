@@ -677,7 +677,11 @@ export default function Home() {
 }
 
 // ============================================================
+<<<<<<< HEAD
 // ОСНОВНОЙ ЧАТ
+=======
+// ОСНОВНОЙ ЧАТ (БЕЗ ДУБЛИРОВАНИЯ)
+>>>>>>> 84760e47781f87f8b5a2ed70a1cf675eea6b01b7
 // ============================================================
 function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any) {
   const [chats, setChats] = useState<Chat[]>([]);
@@ -881,7 +885,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   };
 
   // ============================================================
-  // ОТПРАВКА
+  // ОТПРАВКА (БЕЗ ДУБЛИРОВАНИЯ)
   // ============================================================
   const sendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -905,6 +909,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
       reactions: [],
     };
     
+    // ★★★ ДОБАВЛЯЕМ В СПИСОК СРАЗУ ★★★
     setMessages((prev) => {
       const exists = prev.some((m) => m.tempId === tempId || (m.text === currentText && m.username === username && !m.id));
       if (exists) return prev;
@@ -930,6 +935,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
       
       if (res.ok) {
         const data = await res.json();
+        // ★★★ ЗАМЕНЯЕМ ВРЕМЕННОЕ СООБЩЕНИЕ НА РЕАЛЬНОЕ ★★★
         setMessages((prev) =>
           prev.map((msg) =>
             msg.tempId === tempId
@@ -944,6 +950,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
           return newSet;
         });
       } else {
+        // ★★★ УДАЛЯЕМ ВРЕМЕННОЕ СООБЩЕНИЕ ПРИ ОШИБКЕ ★★★
         setMessages((prev) => prev.filter((msg) => msg.tempId !== tempId));
         pendingMessagesRef.current.delete(tempId);
         setPendingMessages((prev) => {
@@ -1222,6 +1229,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }, 200);
   };
 
+<<<<<<< HEAD
   // Для мобильных - переключатель реакций
   const toggleReactionsMobile = (messageId: number | string) => {
     if (showReactionsId === messageId) {
@@ -1230,15 +1238,26 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     } else {
       setShowReactionsId(messageId);
       setHoveredMessageId(messageId);
+=======
+  // Для мобильных - тап
+  const handleMessageTap = (messageId: number | string) => {
+    if (hoveredMessageId === messageId) {
+      setHoveredMessageId(null);
+      setShowReactionsId(null);
+    } else {
+      setHoveredMessageId(messageId);
+      setShowReactionsId(messageId);
+>>>>>>> 84760e47781f87f8b5a2ed70a1cf675eea6b01b7
     }
   };
 
   // ============================================================
-  // REALTIME ПОДПИСКИ
+  // REALTIME ПОДПИСКИ (С ПРОВЕРКОЙ НА ДУБЛИКАТЫ)
   // ============================================================
   useEffect(() => {
     if (!currentChatId) return;
 
+    // ★★★ ПОДПИСКА НА НОВЫЕ СООБЩЕНИЯ (С ПРОВЕРКОЙ НА ДУБЛИКАТ) ★★★
     const messagesChannel = supabase
       .channel('public:messages')
       .on(
@@ -1248,16 +1267,32 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
           const newMsg = payload.new as Message;
           if (newMsg.chat_id === currentChatId) {
             setMessages((prev) => {
+<<<<<<< HEAD
+=======
+              // ★★★ ПРОВЕРЯЕМ, ЕСТЬ ЛИ УЖЕ ТАКОЕ СООБЩЕНИЕ ★★★
+              // 1. По tempId (если ещё не заменилось)
+>>>>>>> 84760e47781f87f8b5a2ed70a1cf675eea6b01b7
               if (newMsg.tempId && pendingMessagesRef.current.has(newMsg.tempId)) {
                 return prev;
               }
+              // 2. По id (если уже заменилось)
               if (prev.some((m) => m.id === newMsg.id)) {
                 return prev;
               }
+<<<<<<< HEAD
               if (newMsg.username === username && newMsg.created_at) {
                 const now = new Date().getTime();
                 const msgTime = new Date(newMsg.created_at).getTime();
                 if (now - msgTime < 2000) {
+=======
+              // 3. Если сообщение отправил текущий пользователь и оно только что отправлено — пропускаем
+              if (newMsg.username === username && newMsg.created_at) {
+                const now = new Date().getTime();
+                const msgTime = new Date(newMsg.created_at).getTime();
+                // Если сообщение отправлено меньше 2 секунд назад — скорее всего это наше оптимистичное
+                if (now - msgTime < 2000) {
+                  // Проверяем по тексту (если нет tempId)
+>>>>>>> 84760e47781f87f8b5a2ed70a1cf675eea6b01b7
                   const similar = prev.some(
                     (m) => m.text === newMsg.text && m.username === username && !m.id
                   );
@@ -1266,6 +1301,10 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   }
                 }
               }
+<<<<<<< HEAD
+=======
+              // ★★★ ЕСЛИ ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ — ДОБАВЛЯЕМ ★★★
+>>>>>>> 84760e47781f87f8b5a2ed70a1cf675eea6b01b7
               return [...prev, newMsg];
             });
             setTimeout(scrollToBottom, 50);
@@ -1274,6 +1313,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
       )
       .subscribe();
 
+    // Подписка на УДАЛЕНИЕ
     const deleteChannel = supabase
       .channel('public:messages:delete')
       .on(
@@ -1288,6 +1328,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
       )
       .subscribe();
 
+    // Подписка на РЕАКЦИИ
     const reactionsChannel = supabase
       .channel('public:reactions')
       .on(
@@ -1349,7 +1390,11 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   };
 
   // ============================================================
+<<<<<<< HEAD
   // ФУНКЦИЯ ДЛЯ ОТОБРАЖЕНИЯ СООБЩЕНИЯ (ИСПРАВЛЕННАЯ)
+=======
+  // ФУНКЦИЯ ДЛЯ ОТОБРАЖЕНИЯ СООБЩЕНИЯ
+>>>>>>> 84760e47781f87f8b5a2ed70a1cf675eea6b01b7
   // ============================================================
   const renderMessage = (msg: Message) => {
     const isMy = msg.username === username;
@@ -1379,14 +1424,23 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
         }`}
         onMouseEnter={() => handleMouseEnter(msg.id || msg.tempId || key)}
         onMouseLeave={handleMouseLeave}
+<<<<<<< HEAD
+=======
+        onTouchStart={() => isMobile && handleMessageTap(msg.id || msg.tempId || key)}
+        onClick={() => isMobile && handleMessageTap(msg.id || msg.tempId || key)}
+>>>>>>> 84760e47781f87f8b5a2ed70a1cf675eea6b01b7
       >
         {!isMy && (
           <div 
             className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 cursor-pointer bg-[var(--accent)] flex items-center justify-center text-white font-bold text-sm"
+<<<<<<< HEAD
             onClick={(e) => {
               e.stopPropagation();
               handleProfileClick(msg.username);
             }}
+=======
+            onClick={() => handleProfileClick(msg.username)}
+>>>>>>> 84760e47781f87f8b5a2ed70a1cf675eea6b01b7
           >
             {msg.username?.charAt(0).toUpperCase() || '?'}
           </div>
@@ -1396,16 +1450,21 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
           {!isMy && (
             <span 
               className={`text-sm font-medium ml-2 mb-1 cursor-pointer hover:underline ${isLight ? 'text-gray-600' : 'text-gray-400'}`}
+<<<<<<< HEAD
               onClick={(e) => {
                 e.stopPropagation();
                 handleProfileClick(msg.username);
               }}
+=======
+              onClick={() => handleProfileClick(msg.username)}
+>>>>>>> 84760e47781f87f8b5a2ed70a1cf675eea6b01b7
             >
               {msg.username}
             </span>
           )}
 
           <div className="relative flex items-center gap-2">
+<<<<<<< HEAD
             {/* Реакции - для ПК при наведении ИЛИ для мобильных при нажатии на кнопку */}
             {(isHovered || showReactions) && !isPending && !isDeleting && (
               <div className={`flex items-center gap-1 flex-shrink-0 ${isMy ? 'order-first' : 'order-last'}`}>
@@ -1415,6 +1474,13 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                       e.stopPropagation(); 
                       deleteMessage(msg.id || msg.tempId || key); 
                     }}
+=======
+            {isHovered && !isPending && !isDeleting && (
+              <div className={`flex items-center gap-1 flex-shrink-0 ${isMy ? 'order-first' : 'order-last'}`}>
+                {isMy && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); deleteMessage(msg.id || msg.tempId || key); }}
+>>>>>>> 84760e47781f87f8b5a2ed70a1cf675eea6b01b7
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-base transition-all hover:scale-110 ${
                       isLight ? 'bg-gray-200 text-gray-600 hover:bg-gray-300' : 'bg-[#2b2b2b] text-gray-400 hover:bg-[#3b3b3b]'
                     }`}
@@ -1426,6 +1492,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   </button>
                 )}
 
+<<<<<<< HEAD
                 {/* Кнопка для вызова реакций на мобильных */}
                 {isMobile && (
                   <button
@@ -1443,19 +1510,28 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   </button>
                 )}
 
+=======
+>>>>>>> 84760e47781f87f8b5a2ed70a1cf675eea6b01b7
                 <div
                   className={`flex gap-0.5 bg-[#1f1f1f] rounded-full px-2 py-1 shadow-lg border border-[#2f2f2f] z-10 transition-all duration-300 ${
                     showReactions ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
                   }`}
+<<<<<<< HEAD
                   onClick={(e) => e.stopPropagation()}
+=======
+>>>>>>> 84760e47781f87f8b5a2ed70a1cf675eea6b01b7
                 >
                   {['❤️', '🔥', '😂', '😢', '👍'].map((emoji) => (
                     <button
                       key={`${msg.id}-${emoji}`}
+<<<<<<< HEAD
                       onClick={(e) => { 
                         e.stopPropagation(); 
                         toggleReaction(msg.id || msg.tempId || key, emoji); 
                       }}
+=======
+                      onClick={(e) => { e.stopPropagation(); toggleReaction(msg.id || msg.tempId || key, emoji); }}
+>>>>>>> 84760e47781f87f8b5a2ed70a1cf675eea6b01b7
                       className={`w-8 h-8 flex items-center justify-center rounded-full text-base transition-all hover:scale-125 active:scale-90 ${
                         userReaction === emoji ? 'bg-[var(--accent)]/30 scale-110' : ''
                       } ${isAnimating ? 'animate-bounce' : ''}`}
@@ -2295,4 +2371,4 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
       )}
     </div>
   );
-}
+      }
