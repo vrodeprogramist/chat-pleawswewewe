@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 
 // ============================================================
@@ -677,7 +677,7 @@ export default function Home() {
 }
 
 // ============================================================
-// ОСНОВНОЙ ЧАТ - С МОБИЛЬНОЙ ВЕРСИЕЙ
+// ОСНОВНОЙ ЧАТ
 // ============================================================
 function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any) {
   const [chats, setChats] = useState<Chat[]>([]);
@@ -699,7 +699,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   // Мобильное состояние
   const [isMobile, setIsMobile] = useState(false);
   const [mobileView, setMobileView] = useState<'chats' | 'chat'>('chats');
-  const [mobileTab, setMobileTab] = useState<'chats' | 'search' | 'settings'>('chats');
 
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -717,6 +716,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   const [showReactionsId, setShowReactionsId] = useState<number | string | null>(null);
   const [animatingReactionId, setAnimatingReactionId] = useState<number | string | null>(null);
   const [pendingMessages, setPendingMessages] = useState<Set<string>>(new Set());
+  const pendingMessagesRef = useRef<Set<string>>(new Set());
 
   const getAvatarColor = (name: string) => {
     if (!name || name.length === 0) return '#6c5ce7';
@@ -751,9 +751,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
         if (data.avatarUrl) {
           setAvatarUrl(data.avatarUrl);
           localStorage.setItem(`whisp_avatar_${username}`, data.avatarUrl);
-        } else {
-          setAvatarUrl(null);
-          localStorage.removeItem(`whisp_avatar_${username}`);
         }
       }
     } catch (error) {
@@ -866,9 +863,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
         setCurrentChatId(chatId);
         setCurrentChatUser(otherUser);
         await loadMessages(chatId);
-        if (isMobile) {
-          setMobileView('chat');
-        }
+        if (isMobile) setMobileView('chat');
       }
     } catch (error) {
       console.error('Ошибка создания чата:', error);
@@ -876,15 +871,13 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   };
 
   // ============================================================
-  // ВЫБОР ЧАТА (МОБИЛЬНАЯ ВЕРСИЯ)
+  // ВЫБОР ЧАТА
   // ============================================================
   const handleChatSelect = (chat: any) => {
     setCurrentChatId(chat.id);
     setCurrentChatUser(chat.otherUser);
     loadMessages(chat.id);
-    if (isMobile) {
-      setMobileView('chat');
-    }
+    if (isMobile) setMobileView('chat');
   };
 
   // ============================================================
@@ -917,6 +910,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
       if (exists) return prev;
       return [...prev, optimisticMessage];
     });
+    pendingMessagesRef.current.add(tempId);
     setPendingMessages((prev) => new Set(prev).add(tempId));
     setTimeout(scrollToBottom, 50);
     
@@ -943,6 +937,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
               : msg
           )
         );
+        pendingMessagesRef.current.delete(tempId);
         setPendingMessages((prev) => {
           const newSet = new Set(prev);
           newSet.delete(tempId);
@@ -950,6 +945,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
         });
       } else {
         setMessages((prev) => prev.filter((msg) => msg.tempId !== tempId));
+        pendingMessagesRef.current.delete(tempId);
         setPendingMessages((prev) => {
           const newSet = new Set(prev);
           newSet.delete(tempId);
@@ -961,6 +957,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     } catch (error) {
       console.error(error);
       setMessages((prev) => prev.filter((msg) => msg.tempId !== tempId));
+      pendingMessagesRef.current.delete(tempId);
       setPendingMessages((prev) => {
         const newSet = new Set(prev);
         newSet.delete(tempId);
@@ -1225,6 +1222,17 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }, 200);
   };
 
+  // Для мобильных - переключатель реакций
+  const toggleReactionsMobile = (messageId: number | string) => {
+    if (showReactionsId === messageId) {
+      setShowReactionsId(null);
+      setHoveredMessageId(null);
+    } else {
+      setShowReactionsId(messageId);
+      setHoveredMessageId(messageId);
+    }
+  };
+
   // ============================================================
   // REALTIME ПОДПИСКИ
   // ============================================================
@@ -1240,11 +1248,23 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
           const newMsg = payload.new as Message;
           if (newMsg.chat_id === currentChatId) {
             setMessages((prev) => {
-              if (newMsg.tempId && prev.some((m) => m.tempId === newMsg.tempId)) {
+              if (newMsg.tempId && pendingMessagesRef.current.has(newMsg.tempId)) {
                 return prev;
               }
               if (prev.some((m) => m.id === newMsg.id)) {
                 return prev;
+              }
+              if (newMsg.username === username && newMsg.created_at) {
+                const now = new Date().getTime();
+                const msgTime = new Date(newMsg.created_at).getTime();
+                if (now - msgTime < 2000) {
+                  const similar = prev.some(
+                    (m) => m.text === newMsg.text && m.username === username && !m.id
+                  );
+                  if (similar) {
+                    return prev;
+                  }
+                }
               }
               return [...prev, newMsg];
             });
@@ -1329,19 +1349,178 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   };
 
   // ============================================================
+  // ФУНКЦИЯ ДЛЯ ОТОБРАЖЕНИЯ СООБЩЕНИЯ (ИСПРАВЛЕННАЯ)
+  // ============================================================
+  const renderMessage = (msg: Message) => {
+    const isMy = msg.username === username;
+    const msgReactions = msg.reactions || [];
+    const groupedReactions = msgReactions.reduce((acc: any, r: Reaction) => {
+      acc[r.reaction] = (acc[r.reaction] || 0) + 1;
+      return acc;
+    }, {});
+    const userReaction = msgReactions.find((r) => r.username === username)?.reaction;
+    const isDeleting = deletingMessageId === msg.id || deletingMessageId === msg.tempId;
+    const showReactions = showReactionsId === msg.id || showReactionsId === msg.tempId;
+    const isHovered = hoveredMessageId === msg.id || hoveredMessageId === msg.tempId;
+    const isAnimating = animatingReactionId === msg.id;
+    const isPending = msg.tempId ? pendingMessages.has(msg.tempId) : false;
+
+    const key = msg.id || msg.tempId || `msg-${Math.random()}`;
+
+    return (
+      <div
+        key={key}
+        className={`flex items-end gap-3 ${isMy ? 'flex-row-reverse' : ''} relative ${
+          isPending ? 'animate-pulse opacity-70' : ''
+        } ${
+          !isPending && !isDeleting ? 'animate-slideUp' : ''
+        } ${
+          isDeleting ? 'animate-delete' : ''
+        }`}
+        onMouseEnter={() => handleMouseEnter(msg.id || msg.tempId || key)}
+        onMouseLeave={handleMouseLeave}
+      >
+        {!isMy && (
+          <div 
+            className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 cursor-pointer bg-[var(--accent)] flex items-center justify-center text-white font-bold text-sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleProfileClick(msg.username);
+            }}
+          >
+            {msg.username?.charAt(0).toUpperCase() || '?'}
+          </div>
+        )}
+
+        <div className={`max-w-[80%] ${isMy ? 'flex flex-col items-end' : ''}`}>
+          {!isMy && (
+            <span 
+              className={`text-sm font-medium ml-2 mb-1 cursor-pointer hover:underline ${isLight ? 'text-gray-600' : 'text-gray-400'}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleProfileClick(msg.username);
+              }}
+            >
+              {msg.username}
+            </span>
+          )}
+
+          <div className="relative flex items-center gap-2">
+            {/* Реакции - для ПК при наведении ИЛИ для мобильных при нажатии на кнопку */}
+            {(isHovered || showReactions) && !isPending && !isDeleting && (
+              <div className={`flex items-center gap-1 flex-shrink-0 ${isMy ? 'order-first' : 'order-last'}`}>
+                {isMy && (
+                  <button
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      deleteMessage(msg.id || msg.tempId || key); 
+                    }}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-base transition-all hover:scale-110 ${
+                      isLight ? 'bg-gray-200 text-gray-600 hover:bg-gray-300' : 'bg-[#2b2b2b] text-gray-400 hover:bg-[#3b3b3b]'
+                    }`}
+                    title="Удалить"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                )}
+
+                {/* Кнопка для вызова реакций на мобильных */}
+                {isMobile && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleReactionsMobile(msg.id || msg.tempId || key);
+                    }}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-base transition-all hover:scale-110 ${
+                      showReactions 
+                        ? 'bg-[var(--accent)]/30' 
+                        : isLight ? 'bg-gray-200 hover:bg-gray-300' : 'bg-[#2b2b2b] hover:bg-[#3b3b3b]'
+                    }`}
+                  >
+                    😊
+                  </button>
+                )}
+
+                <div
+                  className={`flex gap-0.5 bg-[#1f1f1f] rounded-full px-2 py-1 shadow-lg border border-[#2f2f2f] z-10 transition-all duration-300 ${
+                    showReactions ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+                  }`}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {['❤️', '🔥', '😂', '😢', '👍'].map((emoji) => (
+                    <button
+                      key={`${msg.id}-${emoji}`}
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        toggleReaction(msg.id || msg.tempId || key, emoji); 
+                      }}
+                      className={`w-8 h-8 flex items-center justify-center rounded-full text-base transition-all hover:scale-125 active:scale-90 ${
+                        userReaction === emoji ? 'bg-[var(--accent)]/30 scale-110' : ''
+                      } ${isAnimating ? 'animate-bounce' : ''}`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div
+              className={`px-6 py-4 rounded-2xl text-base break-words ${
+                isMy 
+                  ? 'bg-[var(--accent)] text-white rounded-br-sm' 
+                  : isLight 
+                    ? 'bg-white text-gray-900 rounded-bl-sm shadow-md' 
+                    : 'bg-[#2b2b2b] text-white rounded-bl-sm'
+              }`}
+            >
+              {msg.type === 'image' && <img src={msg.text} alt="Фото" className="max-w-[300px] rounded-xl" />}
+              {msg.type === 'video' && <video src={msg.text} controls className="max-w-[300px] rounded-xl" />}
+              {msg.type === 'voice' && (
+                <div className="flex items-center gap-3">
+                  <audio controls src={msg.text} className="h-12" />
+                  {msg.duration && <span className="text-sm opacity-70">{msg.duration}с</span>}
+                </div>
+              )}
+              {(!msg.type || msg.type === 'text') && <span className="text-base">{msg.text}</span>}
+              {isPending && (
+                <span className="inline-block ml-2 text-xs opacity-50 animate-pulse">⏳</span>
+              )}
+            </div>
+          </div>
+
+          {Object.keys(groupedReactions).length > 0 && !isPending && (
+            <div className={`flex flex-wrap gap-1.5 mt-1 ${isMy ? 'justify-end' : ''}`}>
+              {Object.entries(groupedReactions).map(([emoji, count]) => (
+                <span key={`${msg.id}-${emoji}-count`} className={`text-sm px-2 py-0.5 rounded-full ${isLight ? 'bg-gray-200 text-gray-700' : 'bg-[#2b2b2b] text-gray-300'}`}>
+                  {emoji} {count as number}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className={`flex items-center gap-2 mt-1 ${isMy ? 'flex-row-reverse' : ''}`}>
+            <span className={`text-xs ${isLight ? 'text-gray-400' : 'text-gray-500'}`}>
+              {msg.tempId ? 'Отправка...' : formatTime(msg.created_at)}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ============================================================
   // МОБИЛЬНЫЙ РЕНДЕР
   // ============================================================
   if (isMobile) {
     const bgColor = isLight ? '#ffffff' : '#0a0a0a';
-    const bgSecondary = isLight ? '#f0f2f5' : '#1c1c1e';
     const textPrimary = isLight ? '#000000' : '#ffffff';
     const textSecondary = isLight ? '#8e8e93' : '#8e8e93';
-    const bubbleBg = isLight ? '#e9e9eb' : '#2c2c2e';
     const borderColor = isLight ? '#d1d1d6' : '#38383a';
     const headerBg = isLight ? 'rgba(255,255,255,0.9)' : 'rgba(28,28,30,0.9)';
     const inputFieldBg = isLight ? '#f0f0f0' : '#2c2c2e';
-    const tabBg = isLight ? 'rgba(255,255,255,0.95)' : 'rgba(28,28,30,0.95)';
-    const tabIcon = isLight ? '#8e8e93' : '#8e8e93';
     const messagesBg = isLight ? '#f0f2f5' : '#0a0a0a';
 
     return (
@@ -1476,6 +1655,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
               })}
             </div>
 
+            {/* Мобильный нижний таббар */}
             <div style={{
               position: 'fixed',
               bottom: 0,
@@ -1486,14 +1666,14 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
               alignItems: 'center',
               padding: '8px 0',
               paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
-              background: tabBg,
+              background: headerBg,
               backdropFilter: 'blur(20px)',
               WebkitBackdropFilter: 'blur(20px)',
               borderTop: `1px solid ${borderColor}`,
               zIndex: 100
             }}>
               <button 
-                onClick={() => setMobileTab('chats')}
+                onClick={() => setMobileView('chats')}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -1502,14 +1682,14 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   padding: '4px 16px',
                   border: 'none',
                   background: 'none',
-                  color: mobileTab === 'chats' ? accentColor : tabIcon,
+                  color: mobileView === 'chats' ? accentColor : textSecondary,
                   fontSize: '10px',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                   position: 'relative'
                 }}
               >
-                <svg width="26" height="26" viewBox="0 0 24 24" fill={mobileTab === 'chats' ? accentColor : 'none'} stroke="currentColor" strokeWidth="2">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill={mobileView === 'chats' ? accentColor : 'none'} stroke="currentColor" strokeWidth="2">
                   <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
                 </svg>
                 <span>Чаты</span>
@@ -1518,7 +1698,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
               <button 
                 onClick={() => {
                   setIsSearchOpen(!isSearchOpen);
-                  if (isSearchOpen) setMobileTab('search');
                 }}
                 style={{
                   display: 'flex',
@@ -1528,7 +1707,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   padding: '4px 16px',
                   border: 'none',
                   background: 'none',
-                  color: mobileTab === 'search' ? accentColor : tabIcon,
+                  color: isSearchOpen ? accentColor : textSecondary,
                   fontSize: '10px',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
@@ -1551,7 +1730,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   padding: '4px 16px',
                   border: 'none',
                   background: 'none',
-                  color: tabIcon,
+                  color: textSecondary,
                   fontSize: '10px',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
@@ -1590,7 +1769,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   padding: '4px 16px',
                   border: 'none',
                   background: 'none',
-                  color: mobileTab === 'settings' ? accentColor : tabIcon,
+                  color: textSecondary,
                   fontSize: '10px',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
@@ -1619,7 +1798,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
                   <button 
-                    onClick={() => { setIsSearchOpen(false); setMobileTab('chats'); }}
+                    onClick={() => { setIsSearchOpen(false); }}
                     style={{
                       padding: '8px',
                       border: 'none',
@@ -1781,75 +1960,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
               gap: '6px',
               backgroundColor: messagesBg
             }}>
-              {messages.map((msg) => {
-                const isMy = msg.username === username;
-                const msgReactions = msg.reactions || [];
-                const groupedReactions = msgReactions.reduce((acc: any, r: Reaction) => {
-                  acc[r.reaction] = (acc[r.reaction] || 0) + 1;
-                  return acc;
-                }, {});
-                const isPending = msg.tempId ? pendingMessages.has(msg.tempId) : false;
-                const key = msg.id || msg.tempId || `msg-${Math.random()}`;
-
-                return (
-                  <div
-                    key={key}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: isMy ? 'flex-end' : 'flex-start',
-                      maxWidth: '85%',
-                      alignSelf: isMy ? 'flex-end' : 'flex-start'
-                    }}
-                  >
-                    <div style={{
-                      padding: '10px 14px',
-                      borderRadius: '16px',
-                      backgroundColor: isMy ? accentColor : bubbleBg,
-                      color: isMy ? 'white' : textPrimary,
-                      borderBottomRightRadius: isMy ? '4px' : '16px',
-                      borderBottomLeftRadius: isMy ? '16px' : '4px',
-                      fontSize: '15px',
-                      lineHeight: '1.4',
-                      wordWrap: 'break-word',
-                      maxWidth: '100%'
-                    }}>
-                      {msg.type === 'text' && msg.text}
-                      {isPending && (
-                        <span style={{ marginLeft: '8px', fontSize: '12px', opacity: 0.6 }}>⏳</span>
-                      )}
-                    </div>
-                    {Object.keys(groupedReactions).length > 0 && !isPending && (
-                      <div style={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: '4px',
-                        marginTop: '4px',
-                        fontSize: '12px'
-                      }}>
-                        {Object.entries(groupedReactions).map(([emoji, count]) => (
-                          <span key={emoji} style={{
-                            padding: '2px 8px',
-                            borderRadius: '12px',
-                            background: isLight ? '#e9e9eb' : '#2c2c2e',
-                            color: textPrimary
-                          }}>
-                            {emoji} {count as number}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    <div style={{
-                      fontSize: '10px',
-                      color: textSecondary,
-                      marginTop: '2px',
-                      padding: '0 4px'
-                    }}>
-                      {formatTime(msg.created_at)}
-                    </div>
-                  </div>
-                );
-              })}
+              {messages.map((msg) => renderMessage(msg))}
               <div ref={messagesEndRef} />
             </div>
 
@@ -1907,7 +2018,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                     </svg>
                   </button>
                   <button 
-                    onClick={sendMessage} 
+                    onClick={(e) => { e.preventDefault(); sendMessage(); }} 
                     disabled={isSending || !text.trim()}
                     style={{
                       padding: '10px 16px',
@@ -2086,134 +2197,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
 
             {/* СООБЩЕНИЯ */}
             <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3 messages-container">
-              {messages.map((msg) => {
-                const isMy = msg.username === username;
-                const msgReactions = msg.reactions || [];
-                const groupedReactions = msgReactions.reduce((acc: any, r: Reaction) => {
-                  acc[r.reaction] = (acc[r.reaction] || 0) + 1;
-                  return acc;
-                }, {});
-                const userReaction = msgReactions.find((r) => r.username === username)?.reaction;
-                const isDeleting = deletingMessageId === msg.id || deletingMessageId === msg.tempId;
-                const showReactions = showReactionsId === msg.id || showReactionsId === msg.tempId;
-                const isHovered = hoveredMessageId === msg.id || hoveredMessageId === msg.tempId;
-                const isAnimating = animatingReactionId === msg.id;
-                const isPending = msg.tempId ? pendingMessages.has(msg.tempId) : false;
-
-                const key = msg.id || msg.tempId || `msg-${Math.random()}`;
-
-                return (
-                  <div
-                    key={key}
-                    className={`flex items-end gap-3 ${isMy ? 'flex-row-reverse' : ''} relative ${
-                      isPending ? 'animate-pulse opacity-70' : ''
-                    } ${
-                      !isPending && !isDeleting ? 'animate-slideUp' : ''
-                    } ${
-                      isDeleting ? 'animate-delete' : ''
-                    }`}
-                    onMouseEnter={() => handleMouseEnter(msg.id || msg.tempId || key)}
-                    onMouseLeave={handleMouseLeave}
-                  >
-                    {!isMy && (
-                      <div 
-                        className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 cursor-pointer bg-[var(--accent)] flex items-center justify-center text-white font-bold text-sm"
-                        onClick={() => handleProfileClick(msg.username)}
-                      >
-                        {msg.username?.charAt(0).toUpperCase() || '?'}
-                      </div>
-                    )}
-
-                    <div className={`max-w-[80%] ${isMy ? 'flex flex-col items-end' : ''}`}>
-                      {!isMy && (
-                        <span 
-                          className={`text-sm font-medium ml-2 mb-1 cursor-pointer hover:underline ${isLight ? 'text-gray-600' : 'text-gray-400'}`}
-                          onClick={() => handleProfileClick(msg.username)}
-                        >
-                          {msg.username}
-                        </span>
-                      )}
-
-                      <div className="relative flex items-center gap-2">
-                        {isHovered && !isPending && !isDeleting && (
-                          <div className={`flex items-center gap-1 flex-shrink-0 ${isMy ? 'order-first' : 'order-last'}`}>
-                            {isMy && (
-                              <button
-                                onClick={() => deleteMessage(msg.id || msg.tempId || key)}
-                                className={`w-8 h-8 rounded-full flex items-center justify-center text-base transition-all hover:scale-110 ${
-                                  isLight ? 'bg-gray-200 text-gray-600 hover:bg-gray-300' : 'bg-[#2b2b2b] text-gray-400 hover:bg-[#3b3b3b]'
-                                }`}
-                                title="Удалить"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
-                            )}
-
-                            <div
-                              className={`flex gap-0.5 bg-[#1f1f1f] rounded-full px-2 py-1 shadow-lg border border-[#2f2f2f] z-10 transition-all duration-300 ${
-                                showReactions ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-                              }`}
-                            >
-                              {['❤️', '🔥', '😂', '😢', '👍'].map((emoji) => (
-                                <button
-                                  key={`${msg.id}-${emoji}`}
-                                  onClick={() => toggleReaction(msg.id || msg.tempId || key, emoji)}
-                                  className={`w-8 h-8 flex items-center justify-center rounded-full text-base transition-all hover:scale-125 active:scale-90 ${
-                                    userReaction === emoji ? 'bg-[var(--accent)]/30 scale-110' : ''
-                                  } ${isAnimating ? 'animate-bounce' : ''}`}
-                                >
-                                  {emoji}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        <div
-                          className={`px-6 py-4 rounded-2xl text-base break-words ${
-                            isMy 
-                              ? 'bg-[var(--accent)] text-white rounded-br-sm' 
-                              : isLight 
-                                ? 'bg-white text-gray-900 rounded-bl-sm shadow-md' 
-                                : 'bg-[#2b2b2b] text-white rounded-bl-sm'
-                          }`}
-                        >
-                          {msg.type === 'image' && <img src={msg.text} alt="Фото" className="max-w-[300px] rounded-xl" />}
-                          {msg.type === 'video' && <video src={msg.text} controls className="max-w-[300px] rounded-xl" />}
-                          {msg.type === 'voice' && (
-                            <div className="flex items-center gap-3">
-                              <audio controls src={msg.text} className="h-12" />
-                              {msg.duration && <span className="text-sm opacity-70">{msg.duration}с</span>}
-                            </div>
-                          )}
-                          {(!msg.type || msg.type === 'text') && <span className="text-base">{msg.text}</span>}
-                          {isPending && (
-                            <span className="inline-block ml-2 text-xs opacity-50 animate-pulse">⏳</span>
-                          )}
-                        </div>
-                      </div>
-
-                      {Object.keys(groupedReactions).length > 0 && !isPending && (
-                        <div className={`flex flex-wrap gap-1.5 mt-1 ${isMy ? 'justify-end' : ''}`}>
-                          {Object.entries(groupedReactions).map(([emoji, count]) => (
-                            <span key={`${msg.id}-${emoji}-count`} className={`text-sm px-2 py-0.5 rounded-full ${isLight ? 'bg-gray-200 text-gray-700' : 'bg-[#2b2b2b] text-gray-300'}`}>
-                              {emoji} {count as number}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      <div className={`flex items-center gap-2 mt-1 ${isMy ? 'flex-row-reverse' : ''}`}>
-                        <span className={`text-xs ${isLight ? 'text-gray-400' : 'text-gray-500'}`}>
-                          {msg.tempId ? 'Отправка...' : formatTime(msg.created_at)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+              {messages.map((msg) => renderMessage(msg))}
               <div ref={messagesEndRef} />
             </div>
 
