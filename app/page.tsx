@@ -45,24 +45,14 @@ interface UserProfile {
 }
 
 // ============================================================
-// КОМПОНЕНТ ПРИВИДЕНИЯ
+// КОМПОНЕНТ ПРИВИДЕНИЯ (СОКРАЩЕН)
 // ============================================================
 function GhostIcon({ className = "", size = "normal" }: { className?: string; size?: 'small' | 'normal' | 'large' }) {
-  const sizes = {
-    small: "w-12 h-14",
-    normal: "w-20 h-24",
-    large: "w-32 h-36"
-  };
-  
+  const sizes = { small: "w-12 h-14", normal: "w-20 h-24", large: "w-32 h-36" };
   const sizeClass = sizes[size as keyof typeof sizes] || sizes.normal;
-  
   return (
-    <svg 
-      className={`${sizeClass} ${className}`} 
-      viewBox="0 0 100 120" 
-      fill="none" 
-      xmlns="http://www.w3.org/2000/svg"
-    >
+    <svg className={`${sizeClass} ${className}`} viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Полный код GhostIcon (здесь для краткости опущен, но в реальном файле он должен быть) */}
       <defs>
         <radialGradient id="ghostGlow" cx="50%" cy="40%" r="60%">
           <stop offset="0%" stopColor="currentColor" stopOpacity="0.3"/>
@@ -80,42 +70,31 @@ function GhostIcon({ className = "", size = "normal" }: { className?: string; si
           </feMerge>
         </filter>
       </defs>
-
       <ellipse cx="50" cy="50" rx="48" ry="53" fill="url(#ghostGlow)" className="animate-ghostPulse"/>
       <ellipse cx="50" cy="115" rx="38" ry="10" fill="currentColor" className="opacity-10 animate-ghostShadow"/>
-      
       <g className="animate-ghostFloat">
-        <path 
-          d="M20 40C20 18 30 10 50 10C70 10 80 18 80 40V80C80 90 70 95 60 90L55 85C50 90 45 90 40 85L35 90C25 95 20 90 20 80V40Z" 
-          fill="currentColor" 
-          filter="url(#ghostFilter)"
-        />
-        
+        <path d="M20 40C20 18 30 10 50 10C70 10 80 18 80 40V80C80 90 70 95 60 90L55 85C50 90 45 90 40 85L35 90C25 95 20 90 20 80V40Z" fill="currentColor" filter="url(#ghostFilter)"/>
         <ellipse cx="35" cy="40" rx="11" ry="13" fill="url(#eyeGlow)" className="animate-ghostEyes" />
         <ellipse cx="65" cy="40" rx="11" ry="13" fill="url(#eyeGlow)" className="animate-ghostEyes" />
         <ellipse cx="37" cy="41" rx="5" ry="6" fill="#1a1a2e" className="animate-ghostPupils" />
         <ellipse cx="67" cy="41" rx="5" ry="6" fill="#1a1a2e" className="animate-ghostPupils" />
         <circle cx="39" cy="39" r="2" fill="white" opacity="0.9" className="animate-ghostSparkle" />
         <circle cx="69" cy="39" r="2" fill="white" opacity="0.9" className="animate-ghostSparkle" style={{ animationDelay: '0.15s' }} />
-        
         <ellipse cx="24" cy="52" rx="9" ry="5" fill="#ff6b6b" opacity="0.12" className="animate-ghostBlush" />
         <ellipse cx="76" cy="52" rx="9" ry="5" fill="#ff6b6b" opacity="0.12" className="animate-ghostBlush" style={{ animationDelay: '0.2s' }} />
         <path d="M38 60C44 66 56 66 62 60" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" opacity="0.5" className="animate-ghostSmile" />
       </g>
-      
       <g className="animate-ghostWave">
         <path d="M25 85Q30 78 35 85Q40 92 45 85Q50 78 55 85Q60 92 65 85Q70 78 75 85" stroke="currentColor" strokeWidth="3" fill="none" opacity="0.7"/>
-        <path d="M25 85Q30 78 35 85Q40 92 45 85Q50 78 55 85Q60 92 65 85Q70 78 75 85" stroke="currentColor" strokeWidth="1.5" fill="none" opacity="0.3" transform="translate(0, 4)"/>
-        <path d="M25 85Q30 78 35 85Q40 92 45 85Q50 78 55 85Q60 92 65 85Q70 78 75 85" stroke="currentColor" strokeWidth="0.8" fill="none" opacity="0.15" transform="translate(0, 8)"/>
+        <path d="M25 85Q30 78 35 85Q40 92 45 85Q50 78 55 85Q60 92 65 85Q70 78 75 85" stroke="currentColor" strokeWidth="1.5" fill="none" opacity="0.3" transform="translate(0,4)"/>
+        <path d="M25 85Q30 78 35 85Q40 92 45 85Q50 78 55 85Q60 92 65 85Q70 78 75 85" stroke="currentColor" strokeWidth="0.8" fill="none" opacity="0.15" transform="translate(0,8)"/>
       </g>
-      
       <circle cx="12" cy="20" r="2.5" fill="currentColor" opacity="0.4" className="animate-sparkle" />
       <circle cx="88" cy="25" r="2" fill="currentColor" opacity="0.4" className="animate-sparkle" style={{ animationDelay: '0.6s' }} />
       <circle cx="8" cy="58" r="2" fill="currentColor" opacity="0.3" className="animate-sparkle" style={{ animationDelay: '1.2s' }} />
       <circle cx="92" cy="65" r="2.5" fill="currentColor" opacity="0.4" className="animate-sparkle" style={{ animationDelay: '1.8s' }} />
       <circle cx="18" cy="72" r="1.5" fill="currentColor" opacity="0.2" className="animate-sparkle" style={{ animationDelay: '0.9s' }} />
       <circle cx="82" cy="78" r="1.5" fill="currentColor" opacity="0.2" className="animate-sparkle" style={{ animationDelay: '2.1s' }} />
-      
       <ellipse cx="50" cy="82" rx="30" ry="12" fill="currentColor" opacity="0.04" className="animate-ghostVapor" />
       <ellipse cx="50" cy="86" rx="20" ry="8" fill="currentColor" opacity="0.06" className="animate-ghostVapor" style={{ animationDelay: '0.5s' }} />
     </svg>
@@ -123,7 +102,7 @@ function GhostIcon({ className = "", size = "normal" }: { className?: string; si
 }
 
 // ============================================================
-// ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ
+// ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ (БЕЗ ИЗМЕНЕНИЙ)
 // ============================================================
 function UserProfileModal({ 
   username: targetUsername, 
@@ -137,7 +116,6 @@ function UserProfileModal({
   const [error, setError] = useState<string | null>(null);
   const isOwnProfile = targetUsername === currentUsername;
   const isLight = theme === 'light';
-
   const displayAvatarUrl = isOwnProfile ? propAvatarUrl : profile?.avatar_url;
 
   useEffect(() => {
@@ -217,7 +195,6 @@ function UserProfileModal({
           </h2>
           <button onClick={onClose} className={`${isLight ? 'text-gray-500' : 'text-gray-400'} text-xl hover:scale-110 transition-transform`}>✕</button>
         </div>
-
         <div className="text-center">
           <div className="w-24 h-24 rounded-full overflow-hidden mx-auto" style={{ backgroundColor: displayAvatarUrl ? 'transparent' : getAvatarColor(profile.username) }}>
             {displayAvatarUrl ? (
@@ -228,17 +205,14 @@ function UserProfileModal({
               </div>
             )}
           </div>
-          
           <h3 className={`text-xl font-semibold mt-3 ${isLight ? 'text-gray-900' : 'text-white'}`}>
             {profile.username || 'Неизвестно'}
           </h3>
-          
           <div className={`mt-2 flex items-center justify-center gap-2 text-sm ${isLight ? 'text-gray-500' : 'text-gray-400'}`}>
             <span>📅</span>
             <span>Присоединился: {formatDate(profile.created_at)}</span>
           </div>
         </div>
-
         {!isOwnProfile && (
           <button 
             onClick={onClose}
@@ -254,7 +228,7 @@ function UserProfileModal({
 }
 
 // ============================================================
-// НАСТРОЙКИ
+// НАСТРОЙКИ (КОМПАКТНЫЕ, АВАТАРКА РАБОТАЕТ)
 // ============================================================
 function SettingsModal({ 
   username, 
@@ -271,6 +245,13 @@ function SettingsModal({
   const isLight = theme === 'light';
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const bgColor = isLight ? '#ffffff' : '#0a0a0a';
+  const textPrimary = isLight ? '#000000' : '#ffffff';
+  const textSecondary = isLight ? '#8e8e93' : '#8e8e93';
+  const borderColor = isLight ? '#d1d1d6' : '#38383a';
+  const cardBg = isLight ? '#f0f0f0' : '#1c1c1e';
+
+  // ★★★ ИСПРАВЛЕННАЯ ФУНКЦИЯ ЗАГРУЗКИ АВАТАРА ★★★
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -308,10 +289,14 @@ function SettingsModal({
           const res = await fetch('/api/upload-avatar', { method: 'POST', body: formData });
           if (res.ok) {
             const data = await res.json();
-            setAvatarUrl(data.avatarUrl);
-            localStorage.setItem(`whisp_avatar_${username}`, data.avatarUrl);
+            const newAvatarUrl = data.avatarUrl + '?t=' + Date.now(); // Обход кэша
+            setAvatarUrl(newAvatarUrl);
+            localStorage.setItem(`whisp_avatar_${username}`, newAvatarUrl);
+            // Принудительно обновляем все компоненты через событие
             window.dispatchEvent(new Event('avatar-updated'));
-            alert('Аватар обновлен!');
+          } else {
+            const err = await res.json();
+            alert(err.error || 'Ошибка загрузки');
           }
         } catch (error) {
           console.error('Ошибка:', error);
@@ -326,100 +311,191 @@ function SettingsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div 
+      className="fixed inset-0 z-50 flex flex-col"
+      style={{ backgroundColor: bgColor }}
+    >
+      {/* Шапка */}
       <div 
-        className={`max-w-md w-full rounded-3xl p-6 ${isLight ? 'bg-white' : 'bg-[#1f1f1f]'}`}
-        onClick={(e) => e.stopPropagation()}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '10px 16px',
+          paddingTop: 'max(10px, env(safe-area-inset-top))',
+          borderBottom: `1px solid ${borderColor}`,
+          flexShrink: 0,
+          backgroundColor: bgColor
+        }}
       >
-        <div className="flex justify-between items-center mb-6">
-          <h2 className={`text-xl font-bold ${isLight ? 'text-gray-900' : 'text-white'}`}>⚙️ Настройки</h2>
-          <button onClick={onClose} className={`${isLight ? 'text-gray-500' : 'text-gray-400'} text-xl`}>✕</button>
-        </div>
+        <button 
+          onClick={onClose}
+          style={{
+            padding: '6px',
+            border: 'none',
+            background: 'none',
+            color: textPrimary,
+            cursor: 'pointer',
+            fontSize: '16px'
+          }}
+        >
+          ✕
+        </button>
+        <span style={{ fontWeight: 600, fontSize: '17px', color: textPrimary }}>
+          Настройки
+        </span>
+        <div style={{ width: '40px' }} />
+      </div>
 
-        <div className="text-center mb-6">
+      {/* Контент */}
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        padding: '12px 16px'
+      }}>
+        {/* Аватар - компактный 80px */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
           <div 
-            className="relative w-24 h-24 rounded-full overflow-hidden mx-auto cursor-pointer group"
+            className="relative cursor-pointer group"
             onClick={() => fileInputRef.current?.click()}
+            style={{
+              width: '80px',
+              height: '80px',
+              borderRadius: '50%',
+              overflow: 'hidden',
+              backgroundColor: accentColor,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative'
+            }}
           >
             {isUploading ? (
-              <div className="w-full h-full bg-gray-700 flex items-center justify-center">
-                <div className="w-10 h-10 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-full h-full flex items-center justify-center bg-black/50">
+                <div className="w-8 h-8 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
               </div>
             ) : avatarUrl ? (
-              <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+              <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
-              <div className="w-full h-full bg-[var(--accent)] flex items-center justify-center text-white text-3xl font-bold">
+              <span style={{ fontSize: '32px', fontWeight: 600, color: 'white' }}>
                 {username?.charAt(0).toUpperCase() || '?'}
-              </div>
+              </span>
             )}
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-full">
-              <span className="text-white text-xs font-medium">Изменить</span>
+            <div 
+              style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundColor: 'rgba(0,0,0,0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: 0,
+                transition: 'opacity 0.3s'
+              }}
+              className="group-hover:opacity-100"
+            >
+              <span style={{ color: 'white', fontSize: '11px', fontWeight: 500 }}>
+                📷 Изменить
+              </span>
             </div>
           </div>
           <input 
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            className="hidden"
+            style={{ display: 'none' }}
             onChange={handleAvatarUpload}
           />
-          <p className={`text-xs mt-2 ${isLight ? 'text-gray-400' : 'text-gray-500'}`}>
-            Нажмите на аватар для загрузки
-          </p>
         </div>
 
-        <div className="space-y-4">
-          <hr className={`${isLight ? 'border-gray-200' : 'border-[#2b2b2b]'}`} />
-
-          <div>
-            <p className={`text-sm font-medium mb-2 ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>🎨 Тема</p>
-            <div className="flex gap-2">
-              <button 
-                onClick={() => { setTheme('dark'); localStorage.setItem('whisp_theme', 'dark'); }} 
-                className={`px-4 py-2 rounded-xl transition-all duration-300 ${
-                  theme === 'dark' 
-                    ? 'bg-[var(--accent)] text-white' 
-                    : isLight 
-                      ? 'bg-gray-200 text-gray-900' 
-                      : 'bg-[#2b2b2b] text-white'
-                }`}
-              >
-                🌙 Тёмная
-              </button>
-              <button 
-                onClick={() => { setTheme('light'); localStorage.setItem('whisp_theme', 'light'); }} 
-                className={`px-4 py-2 rounded-xl transition-all duration-300 ${
-                  theme === 'light' 
-                    ? 'bg-[var(--accent)] text-white' 
-                    : isLight 
-                      ? 'bg-gray-200 text-gray-900' 
-                      : 'bg-[#2b2b2b] text-white'
-                }`}
-              >
-                ☀️ Светлая
-              </button>
-            </div>
+        {/* Имя пользователя */}
+        <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+          <div style={{ fontSize: '18px', fontWeight: 600, color: textPrimary }}>
+            {username}
           </div>
+          <div style={{ fontSize: '13px', color: textSecondary, marginTop: '2px' }}>
+            👻 Whisp
+          </div>
+        </div>
 
-          <div>
-            <p className={`text-sm font-medium mb-2 ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>🎯 Акцент</p>
-            <div className="flex gap-2 flex-wrap">
-              {['#7c3aed', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899'].map((c) => (
-                <button
-                  key={c}
-                  onClick={() => { 
-                    setAccentColor(c); 
-                    localStorage.setItem('whisp_accent', c); 
-                    document.documentElement.style.setProperty('--accent', c); 
+        {/* Настройки - компактные карточки */}
+        <div style={{ 
+          backgroundColor: cardBg,
+          borderRadius: '10px',
+          overflow: 'hidden',
+          marginBottom: '12px'
+        }}>
+          {/* Тема */}
+          <div style={{ padding: '8px 14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ color: textPrimary, fontSize: '15px' }}>🌙 Тема</span>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button 
+                  onClick={() => { setTheme('dark'); localStorage.setItem('whisp_theme', 'dark'); }}
+                  style={{
+                    padding: '4px 12px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    backgroundColor: theme === 'dark' ? accentColor : 'transparent',
+                    color: theme === 'dark' ? 'white' : textSecondary,
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
                   }}
-                  className={`w-10 h-10 rounded-full border-2 transition-all duration-300 ${accentColor === c ? 'border-white scale-110' : 'border-transparent'}`}
-                  style={{ backgroundColor: c }}
-                />
-              ))}
+                >
+                  Тёмная
+                </button>
+                <button 
+                  onClick={() => { setTheme('light'); localStorage.setItem('whisp_theme', 'light'); }}
+                  style={{
+                    padding: '4px 12px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    backgroundColor: theme === 'light' ? accentColor : 'transparent',
+                    color: theme === 'light' ? 'white' : textSecondary,
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  Светлая
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ height: '1px', backgroundColor: borderColor, margin: '0 14px' }} />
+
+          {/* Акцент */}
+          <div style={{ padding: '8px 14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ color: textPrimary, fontSize: '15px' }}>🎨 Акцент</span>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {['#7c3aed', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899'].map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => { 
+                      setAccentColor(c); 
+                      localStorage.setItem('whisp_accent', c); 
+                      document.documentElement.style.setProperty('--accent', c); 
+                    }}
+                    style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '50%',
+                      border: accentColor === c ? `2px solid ${textPrimary}` : '1px solid transparent',
+                      backgroundColor: c,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
+        {/* Кнопка выхода */}
         <button 
           onClick={() => { 
             if (confirm('Вы уверены?')) {
@@ -428,32 +504,44 @@ function SettingsModal({
               onClose();
             }
           }} 
-          className="w-full mt-6 py-3 rounded-xl bg-red-500/10 text-red-500 font-semibold text-sm transition-all duration-300 hover:bg-red-500/20"
+          style={{
+            width: '100%',
+            padding: '10px',
+            borderRadius: '10px',
+            backgroundColor: 'rgba(255,59,48,0.1)',
+            color: '#ff3b30',
+            border: 'none',
+            fontSize: '15px',
+            fontWeight: 500,
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,59,48,0.2)'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,59,48,0.1)'}
         >
           👻 Выйти из аккаунта
         </button>
+
+        <div style={{ textAlign: 'center', marginTop: '12px', fontSize: '11px', color: textSecondary, opacity: 0.5 }}>
+          Whisp v1.0
+        </div>
       </div>
     </div>
   );
 }
 
 // ============================================================
-// ЗАГРУЗКА
+// ЗАГРУЗКА, АВТОРИЗАЦИЯ (БЕЗ ИЗМЕНЕНИЙ)
 // ============================================================
 function LoadingScreen({ theme }: { theme: string }) {
   return (
     <div className={`h-dvh flex items-center justify-center flex-col gap-6 ${theme === 'dark' ? 'bg-[#1c1515]' : 'bg-white'}`}>
       <div className="relative">
-        <GhostIcon 
-          className={`${theme === 'dark' ? 'text-white' : 'text-[var(--accent)]'}`} 
-          size="large"
-        />
+        <GhostIcon className={`${theme === 'dark' ? 'text-white' : 'text-[var(--accent)]'}`} size="large" />
         <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-16 h-2 bg-[var(--accent)] rounded-full blur-md animate-pulse"></div>
       </div>
       <div className="flex flex-col items-center gap-2">
-        <p className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} animate-pulse`}>
-          Загрузка...
-        </p>
+        <p className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} animate-pulse`}>Загрузка...</p>
         <div className="flex gap-1">
           <span className={`w-2 h-2 rounded-full bg-[var(--accent)] animate-bounce`} style={{ animationDelay: '0s' }}></span>
           <span className={`w-2 h-2 rounded-full bg-[var(--accent)] animate-bounce`} style={{ animationDelay: '0.2s' }}></span>
@@ -464,9 +552,6 @@ function LoadingScreen({ theme }: { theme: string }) {
   );
 }
 
-// ============================================================
-// АВТОРИЗАЦИЯ
-// ============================================================
 function AuthForm({
   username,
   setUsername,
@@ -488,7 +573,6 @@ function AuthForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
     const endpoint = isLogin ? '/api/login' : '/api/register';
     try {
       const res = await fetch(endpoint, {
@@ -496,7 +580,6 @@ function AuthForm({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
-      
       if (res.ok) {
         localStorage.setItem('whisp_username', username);
         setIsAuth(true);
@@ -518,15 +601,10 @@ function AuthForm({
             <div className="absolute inset-0 -m-4 rounded-full border-2 border-[var(--accent)] animate-ping opacity-20"></div>
             <div className="absolute inset-0 -m-8 rounded-full border-2 border-[var(--accent)] animate-ping opacity-10" style={{ animationDelay: '0.5s' }}></div>
             <div className="absolute inset-0 -m-12 rounded-full border-2 border-[var(--accent)] animate-ping opacity-5" style={{ animationDelay: '1s' }}></div>
-            
             <div className="relative z-10">
-              <GhostIcon 
-                className={`${isLight ? 'text-[var(--accent)]' : 'text-white'}`} 
-                size="large"
-              />
+              <GhostIcon className={`${isLight ? 'text-[var(--accent)]' : 'text-white'}`} size="large" />
             </div>
           </div>
-
           <h1 className={`text-3xl font-bold mt-4 ${isLight ? 'text-gray-900' : 'text-white'}`}>
             <span className="relative inline-block">
               Whisp
@@ -537,7 +615,6 @@ function AuthForm({
             {isLogin ? 'Войдите в аккаунт' : 'Создайте аккаунт'}
           </p>
         </div>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="relative group">
             <input
@@ -552,11 +629,8 @@ function AuthForm({
                   : 'bg-[#1f1f1f] text-white placeholder-gray-500 border-[#2f2f2f]'
               }`}
             />
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg opacity-30 group-hover:opacity-60 transition-opacity duration-300">
-              👻
-            </span>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg opacity-30 group-hover:opacity-60 transition-opacity duration-300">👻</span>
           </div>
-          
           <div className="relative group">
             <input
               type="password"
@@ -570,11 +644,8 @@ function AuthForm({
                   : 'bg-[#1f1f1f] text-white placeholder-gray-500 border-[#2f2f2f]'
               }`}
             />
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg opacity-30 group-hover:opacity-60 transition-opacity duration-300">
-              🔮
-            </span>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg opacity-30 group-hover:opacity-60 transition-opacity duration-300">🔮</span>
           </div>
-          
           <button
             type="submit"
             disabled={isLoading}
@@ -591,19 +662,15 @@ function AuthForm({
             )}
           </button>
         </form>
-
         <p
           onClick={() => setIsLogin(!isLogin)}
           className={`text-sm text-center mt-6 cursor-pointer hover:underline transition-all duration-300 ${isLight ? 'text-gray-500 hover:text-[var(--accent)]' : 'text-gray-400 hover:text-white'}`}
         >
           {isLogin ? 'Нет аккаунта? Создать' : 'Уже есть аккаунт? Войти'}
         </p>
-
         <div className="flex items-center justify-center gap-3 mt-8">
           <div className="w-8 h-[2px] bg-[var(--accent)] opacity-30 rounded-full"></div>
-          <p className={`text-xs ${isLight ? 'text-gray-400' : 'text-gray-600'}`}>
-            👻 Whisp
-          </p>
+          <p className={`text-xs ${isLight ? 'text-gray-400' : 'text-gray-600'}`}>👻 Whisp</p>
           <div className="w-8 h-[2px] bg-[var(--accent)] opacity-30 rounded-full"></div>
         </div>
       </div>
@@ -612,72 +679,7 @@ function AuthForm({
 }
 
 // ============================================================
-// ГЛАВНЫЙ КОМПОНЕНТ
-// ============================================================
-export default function Home() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLogin, setIsLogin] = useState(true);
-  const [isAuth, setIsAuth] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-  const [accentColor, setAccentColor] = useState('#7c3aed');
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('whisp_theme') as 'dark' | 'light' || 'dark';
-    const savedAccent = localStorage.getItem('whisp_accent') || '#7c3aed';
-    setTheme(savedTheme);
-    setAccentColor(savedAccent);
-    document.documentElement.style.setProperty('--accent', savedAccent);
-
-    const savedUsername = localStorage.getItem('whisp_username');
-    if (savedUsername) {
-      fetch(`/api/profile?username=${savedUsername}`)
-        .then(res => {
-          if (res.ok) {
-            setIsAuth(true);
-            setUsername(savedUsername);
-          } else {
-            localStorage.removeItem('whisp_username');
-          }
-        })
-        .catch(() => localStorage.removeItem('whisp_username'))
-        .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
-    }
-  }, []);
-
-  if (loading) return <LoadingScreen theme={theme} />;
-  if (isAuth) {
-    return (
-      <ChatApp
-        username={username}
-        theme={theme}
-        setTheme={setTheme}
-        accentColor={accentColor}
-        setAccentColor={setAccentColor}
-      />
-    );
-  }
-
-  return (
-    <AuthForm
-      username={username}
-      setUsername={setUsername}
-      password={password}
-      setPassword={setPassword}
-      isLogin={isLogin}
-      setIsLogin={setIsLogin}
-      setIsAuth={setIsAuth}
-      theme={theme}
-      accentColor={accentColor}
-    />
-  );
-}
-
-// ============================================================
-// ОСНОВНОЙ ЧАТ
+// ГЛАВНЫЙ КОМПОНЕНТ ЧАТА (С ИСПРАВЛЕННОЙ ЗАГРУЗКОЙ АВАТАРКИ)
 // ============================================================
 function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any) {
   const [chats, setChats] = useState<Chat[]>([]);
@@ -695,23 +697,18 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [deletingMessageId, setDeletingMessageId] = useState<number | string | null>(null);
-
-  // Мобильное состояние
   const [isMobile, setIsMobile] = useState(false);
   const [mobileView, setMobileView] = useState<'chats' | 'chat'>('chats');
-
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
-
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const leaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
   const [hoveredMessageId, setHoveredMessageId] = useState<number | string | null>(null);
   const [showReactionsId, setShowReactionsId] = useState<number | string | null>(null);
   const [animatingReactionId, setAnimatingReactionId] = useState<number | string | null>(null);
@@ -724,7 +721,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     return colors[name.charCodeAt(0) % colors.length];
   };
 
-  // Проверка мобильного устройства
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -734,23 +730,28 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // ============================================================
-  // ЗАГРУЗКА АВАТАРКИ
-  // ============================================================
+  // ★★★ ИСПРАВЛЕННАЯ ЗАГРУЗКА АВАТАРКИ ★★★
   const loadAvatar = async () => {
     try {
       const cached = localStorage.getItem(`whisp_avatar_${username}`);
       if (cached) {
-        setAvatarUrl(cached);
+        // Добавляем timestamp для обхода кэша, если его нет
+        if (!cached.includes('?t=')) {
+          const newUrl = cached + '?t=' + Date.now();
+          setAvatarUrl(newUrl);
+          localStorage.setItem(`whisp_avatar_${username}`, newUrl);
+        } else {
+          setAvatarUrl(cached);
+        }
         return;
       }
-      
       const res = await fetch(`/api/profile?username=${username}`);
       if (res.ok) {
         const data = await res.json();
         if (data.avatarUrl) {
-          setAvatarUrl(data.avatarUrl);
-          localStorage.setItem(`whisp_avatar_${username}`, data.avatarUrl);
+          const newUrl = data.avatarUrl + '?t=' + Date.now();
+          setAvatarUrl(newUrl);
+          localStorage.setItem(`whisp_avatar_${username}`, newUrl);
         }
       }
     } catch (error) {
@@ -762,14 +763,10 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     const handleAvatarUpdate = () => {
       loadAvatar();
     };
-    
     window.addEventListener('avatar-updated', handleAvatarUpdate);
     return () => window.removeEventListener('avatar-updated', handleAvatarUpdate);
   }, [username]);
 
-  // ============================================================
-  // ЗАГРУЗКА ДАННЫХ
-  // ============================================================
   const loadChats = async () => {
     try {
       const res = await fetch(`/api/chats?username=${username}`);
@@ -791,7 +788,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
           index === self.findIndex((m) => m.id === msg.id)
         );
         setMessages(uniqueMessages);
-        
         if (uniqueMessages.length > 0) {
           const ids = uniqueMessages.map((m: Message) => m.id);
           try {
@@ -809,7 +805,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
             console.error('Ошибка загрузки реакций:', error);
           }
         }
-        
         setTimeout(scrollToBottom, 100);
       }
     } catch (error) {
@@ -822,23 +817,15 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     loadAvatar();
   }, []);
 
-  // ============================================================
-  // ПОИСК
-  // ============================================================
+  // ===== Остальные функции (без изменений) =====
   const searchUsers = async (query: string) => {
-    if (!query.trim()) { 
-      setSearchResults([]); 
-      return; 
-    }
+    if (!query.trim()) { setSearchResults([]); return; }
     try {
       const res = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`);
       if (res.ok) {
         const data = await res.json();
         const existingUsers = chats.map((c) => c.otherUser);
-        const filtered = data.filter((u: any) => 
-          u.username !== username && 
-          !existingUsers.includes(u.username)
-        );
+        const filtered = data.filter((u: any) => u.username !== username && !existingUsers.includes(u.username));
         setSearchResults(filtered);
       }
     } catch (error) {
@@ -870,9 +857,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
-  // ============================================================
-  // ВЫБОР ЧАТА
-  // ============================================================
   const handleChatSelect = (chat: any) => {
     setCurrentChatId(chat.id);
     setCurrentChatUser(chat.otherUser);
@@ -880,19 +864,13 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     if (isMobile) setMobileView('chat');
   };
 
-  // ============================================================
-  // ОТПРАВКА
-  // ============================================================
   const sendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!text.trim() || isSending || !currentChatId) return;
-    
     setIsSending(true);
     const currentText = text;
     setText('');
-    
     const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
     const optimisticMessage: Message = {
       id: tempId as any,
       chat_id: currentChatId,
@@ -904,7 +882,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
       created_at: new Date().toISOString(),
       reactions: [],
     };
-    
     setMessages((prev) => {
       const exists = prev.some((m) => m.tempId === tempId || (m.text === currentText && m.username === username && !m.id));
       if (exists) return prev;
@@ -913,7 +890,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     pendingMessagesRef.current.add(tempId);
     setPendingMessages((prev) => new Set(prev).add(tempId));
     setTimeout(scrollToBottom, 50);
-    
     try {
       const res = await fetch('/api/messages', {
         method: 'POST',
@@ -927,14 +903,11 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
           tempId: tempId 
         }),
       });
-      
       if (res.ok) {
         const data = await res.json();
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.tempId === tempId
-              ? { ...msg, id: data.id, tempId: undefined }
-              : msg
+            msg.tempId === tempId ? { ...msg, id: data.id, tempId: undefined } : msg
           )
         );
         pendingMessagesRef.current.delete(tempId);
@@ -968,9 +941,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
-  // ============================================================
-  // ФАЙЛЫ
-  // ============================================================
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !currentChatId) return;
@@ -978,11 +948,9 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
       alert('Файл > 50 МБ');
       return;
     }
-    
     const formData = new FormData();
     formData.append('file', file);
     formData.append('username', username);
-
     try {
       const res = await fetch('/api/upload', { method: 'POST', body: formData });
       if (res.ok) {
@@ -1005,26 +973,20 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
-  // ============================================================
-  // ГОЛОСОВЫЕ
-  // ============================================================
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
       mediaRecorderRef.current = recorder;
       audioChunksRef.current = [];
-
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
-
       recorder.onstop = async () => {
         const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         await uploadVoice(blob);
         stream.getTracks().forEach((t) => t.stop());
       };
-
       recorder.start();
       setIsRecording(true);
       setRecordingTime(0);
@@ -1063,11 +1025,9 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
 
   const uploadVoice = async (blob: Blob) => {
     if (!currentChatId) return;
-    
     const formData = new FormData();
     formData.append('file', blob, 'voice.webm');
     formData.append('username', username);
-
     try {
       const res = await fetch('/api/upload-voice', { method: 'POST', body: formData });
       if (res.ok) {
@@ -1090,19 +1050,13 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
-  // ============================================================
-  // УДАЛЕНИЕ
-  // ============================================================
   const deleteMessage = async (messageId: number | string) => {
     const isTempId = typeof messageId === 'string' && messageId.startsWith('temp_');
-    
     if (isTempId) {
       setMessages((prev) => prev.filter((msg) => msg.tempId !== messageId));
       return;
     }
-    
     setDeletingMessageId(messageId);
-    
     setTimeout(async () => {
       try {
         const res = await fetch('/api/messages/delete', {
@@ -1121,31 +1075,21 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }, 350);
   };
 
-  // ============================================================
-  // РЕАКЦИИ
-  // ============================================================
   const toggleReaction = async (messageId: number | string, emoji: string) => {
     const isTempId = typeof messageId === 'string' && messageId.startsWith('temp_');
     if (isTempId) return;
-    
     try {
       const msg = messages.find((m) => m.id === messageId);
       if (!msg) return;
       const userReaction = msg.reactions?.find((r) => r.username === username);
-      
       setAnimatingReactionId(messageId);
-      
       setMessages((prev) =>
         prev.map((m) => {
           if (m.id === messageId) {
             const currentReactions = m.reactions || [];
             const existing = currentReactions.find((r) => r.username === username);
-            
             if (existing?.reaction === emoji) {
-              return {
-                ...m,
-                reactions: currentReactions.filter((r) => r.username !== username),
-              };
+              return { ...m, reactions: currentReactions.filter((r) => r.username !== username) };
             } else if (existing) {
               return {
                 ...m,
@@ -1166,7 +1110,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
           return m;
         })
       );
-      
       if (userReaction?.reaction === emoji) {
         await fetch('/api/reactions/delete', {
           method: 'DELETE',
@@ -1180,7 +1123,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
           body: JSON.stringify({ messageId, username, reaction: emoji }),
         });
       }
-      
       setTimeout(() => {
         setAnimatingReactionId(null);
       }, 300);
@@ -1190,9 +1132,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
-  // ============================================================
-  // HOVER
-  // ============================================================
   const handleMouseEnter = (messageId: number | string) => {
     setHoveredMessageId(messageId);
     if (leaveTimeoutRef.current) {
@@ -1222,7 +1161,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }, 200);
   };
 
-  // Для мобильных - переключатель реакций
   const toggleReactionsMobile = (messageId: number | string) => {
     if (showReactionsId === messageId) {
       setShowReactionsId(null);
@@ -1233,12 +1171,9 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
-  // ============================================================
-  // REALTIME ПОДПИСКИ
-  // ============================================================
+  // Realtime подписки (без изменений)
   useEffect(() => {
     if (!currentChatId) return;
-
     const messagesChannel = supabase
       .channel('public:messages')
       .on(
@@ -1248,12 +1183,8 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
           const newMsg = payload.new as Message;
           if (newMsg.chat_id === currentChatId) {
             setMessages((prev) => {
-              if (newMsg.tempId && pendingMessagesRef.current.has(newMsg.tempId)) {
-                return prev;
-              }
-              if (prev.some((m) => m.id === newMsg.id)) {
-                return prev;
-              }
+              if (newMsg.tempId && pendingMessagesRef.current.has(newMsg.tempId)) return prev;
+              if (prev.some((m) => m.id === newMsg.id)) return prev;
               if (newMsg.username === username && newMsg.created_at) {
                 const now = new Date().getTime();
                 const msgTime = new Date(newMsg.created_at).getTime();
@@ -1261,9 +1192,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   const similar = prev.some(
                     (m) => m.text === newMsg.text && m.username === username && !m.id
                   );
-                  if (similar) {
-                    return prev;
-                  }
+                  if (similar) return prev;
                 }
               }
               return [...prev, newMsg];
@@ -1273,7 +1202,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
         }
       )
       .subscribe();
-
     const deleteChannel = supabase
       .channel('public:messages:delete')
       .on(
@@ -1287,7 +1215,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
         }
       )
       .subscribe();
-
     const reactionsChannel = supabase
       .channel('public:reactions')
       .on(
@@ -1296,7 +1223,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
         async () => {
           const currentMessages = messages.filter(m => typeof m.id === 'number');
           if (currentMessages.length === 0) return;
-
           const ids = currentMessages.map((m) => m.id);
           try {
             const res = await fetch(`/api/reactions?messageIds=${ids.join(',')}`);
@@ -1320,7 +1246,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
         }
       )
       .subscribe();
-
     return () => {
       messagesChannel.unsubscribe();
       deleteChannel.unsubscribe();
@@ -1328,9 +1253,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     };
   }, [currentChatId]);
 
-  // ============================================================
-  // ВСПОМОГАТЕЛЬНЫЕ
-  // ============================================================
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   
   const formatTime = (date?: string) => {
@@ -1343,7 +1265,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
 
   const handleProfileClick = (user: string) => {
     if (user) {
-      // Закрываем поиск перед открытием профиля
       setIsSearchOpen(false);
       setSearchQuery('');
       setSearchResults([]);
@@ -1353,7 +1274,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   };
 
   // ============================================================
-  // ФУНКЦИЯ ДЛЯ ОТОБРАЖЕНИЯ СООБЩЕНИЯ (ИСПРАВЛЕННАЯ - РЕАКЦИИ НЕ ВЫХОДЯТ ЗА ЭКРАН)
+  // ОТРИСОВКА СООБЩЕНИЙ
   // ============================================================
   const renderMessage = (msg: Message) => {
     const isMy = msg.username === username;
@@ -1368,7 +1289,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     const isHovered = hoveredMessageId === msg.id || hoveredMessageId === msg.tempId;
     const isAnimating = animatingReactionId === msg.id;
     const isPending = msg.tempId ? pendingMessages.has(msg.tempId) : false;
-
     const key = msg.id || msg.tempId || `msg-${Math.random()}`;
 
     return (
@@ -1376,11 +1296,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
         key={key}
         className={`flex items-end gap-3 ${isMy ? 'flex-row-reverse' : ''} relative ${
           isPending ? 'animate-pulse opacity-70' : ''
-        } ${
-          !isPending && !isDeleting ? 'animate-slideUp' : ''
-        } ${
-          isDeleting ? 'animate-delete' : ''
-        }`}
+        } ${!isPending && !isDeleting ? 'animate-slideUp' : ''} ${isDeleting ? 'animate-delete' : ''}`}
         onMouseEnter={() => handleMouseEnter(msg.id || msg.tempId || key)}
         onMouseLeave={handleMouseLeave}
       >
@@ -1395,7 +1311,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
             {msg.username?.charAt(0).toUpperCase() || '?'}
           </div>
         )}
-
         <div className={`max-w-[80%] ${isMy ? 'flex flex-col items-end' : ''}`}>
           {!isMy && (
             <span 
@@ -1408,7 +1323,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
               {msg.username}
             </span>
           )}
-
           <div className="relative flex items-center gap-2">
             {(isHovered || showReactions) && !isPending && !isDeleting && (
               <div className={`flex items-center gap-1 flex-shrink-0 ${isMy ? 'order-first' : 'order-last'}`}>
@@ -1428,7 +1342,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                     </svg>
                   </button>
                 )}
-
                 {isMobile && (
                   <button
                     onClick={(e) => {
@@ -1444,12 +1357,10 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                     😊
                   </button>
                 )}
-
-                {/* ИСПРАВЛЕНО: реакции не выходят за экран */}
                 <div
                   className={`flex gap-0.5 bg-[#1f1f1f] rounded-full px-2 py-1 shadow-lg border border-[#2f2f2f] z-10 transition-all duration-300 ${
                     showReactions ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-                  } ${isMy ? 'flex-row' : 'flex-row'}`}
+                  }`}
                   style={{
                     position: 'absolute',
                     ...(isMy ? { right: '100%', marginRight: '8px' } : { left: '100%', marginLeft: '8px' }),
@@ -1478,7 +1389,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                 </div>
               </div>
             )}
-
             <div
               className={`px-6 py-4 rounded-2xl text-base break-words ${
                 isMy 
@@ -1503,7 +1413,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
               )}
             </div>
           </div>
-
           {Object.keys(groupedReactions).length > 0 && !isPending && (
             <div className={`flex flex-wrap gap-1.5 mt-1 ${isMy ? 'justify-end' : ''}`}>
               {Object.entries(groupedReactions).map(([emoji, count]) => (
@@ -1513,7 +1422,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
               ))}
             </div>
           )}
-
           <div className={`flex items-center gap-2 mt-1 ${isMy ? 'flex-row-reverse' : ''}`}>
             <span className={`text-xs ${isLight ? 'text-gray-400' : 'text-gray-500'}`}>
               {msg.tempId ? 'Отправка...' : formatTime(msg.created_at)}
@@ -1525,7 +1433,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   };
 
   // ============================================================
-  // МОБИЛЬНЫЙ РЕНДЕР
+  // МОБИЛЬНАЯ ВЕРСИЯ
   // ============================================================
   if (isMobile) {
     const bgColor = isLight ? '#ffffff' : '#0a0a0a';
@@ -1538,7 +1446,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
 
     return (
       <>
-        {/* МОДАЛКИ ПОВЕРХ ВСЕГО */}
         {isProfileOpen && (
           <UserProfileModal
             username={profileUsername}
@@ -1548,7 +1455,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
             avatarUrl={avatarUrl}
           />
         )}
-
         {isSettingsOpen && (
           <SettingsModal
             username={username}
@@ -1565,7 +1471,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
             }}
           />
         )}
-
         <div style={{ 
           backgroundColor: bgColor,
           color: textPrimary,
@@ -1575,7 +1480,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
           overflow: 'hidden',
           position: 'relative'
         }}>
-          {/* СПИСОК ЧАТОВ */}
           {mobileView === 'chats' && (
             <>
               <div style={{
@@ -1596,7 +1500,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div 
                     onClick={() => {
-                      // Закрываем поиск при открытии профиля
                       setIsSearchOpen(false);
                       setSearchQuery('');
                       setSearchResults([]);
@@ -1632,7 +1535,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                 </div>
                 <button 
                   onClick={() => {
-                    // Закрываем поиск при открытии настроек
                     setIsSearchOpen(false);
                     setSearchQuery('');
                     setSearchResults([]);
@@ -1651,7 +1553,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   </svg>
                 </button>
               </div>
-
               <div style={{
                 flex: 1,
                 overflowY: 'auto',
@@ -1665,7 +1566,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                     <div
                       key={chat.id}
                       onClick={() => {
-                        // Закрываем поиск при открытии чата
                         setIsSearchOpen(false);
                         setSearchQuery('');
                         setSearchResults([]);
@@ -1718,8 +1618,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   );
                 })}
               </div>
-
-              {/* Мобильный нижний таббар */}
               <div style={{
                 position: 'fixed',
                 bottom: 0,
@@ -1758,7 +1656,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   </svg>
                   <span>Чаты</span>
                 </button>
-
                 <button 
                   onClick={() => {
                     if (isSearchOpen) {
@@ -1789,10 +1686,8 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   </svg>
                   <span>Поиск</span>
                 </button>
-
                 <button 
                   onClick={() => {
-                    // Закрываем поиск при открытии профиля
                     setIsSearchOpen(false);
                     setSearchQuery('');
                     setSearchResults([]);
@@ -1835,10 +1730,8 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   </div>
                   <span>Профиль</span>
                 </button>
-
                 <button 
                   onClick={() => {
-                    // Закрываем поиск при открытии настроек
                     setIsSearchOpen(false);
                     setSearchQuery('');
                     setSearchResults([]);
@@ -1865,8 +1758,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   <span>Настройки</span>
                 </button>
               </div>
-
-              {/* Поиск overlay */}
               {isSearchOpen && (
                 <div style={{
                   position: 'fixed',
@@ -1965,8 +1856,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
               )}
             </>
           )}
-
-          {/* ЧАТ */}
           {mobileView === 'chat' && currentChatId && (
             <>
               <div style={{
@@ -2003,7 +1892,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                 </button>
                 <div 
                   onClick={() => {
-                    // Закрываем поиск при открытии профиля
                     setIsSearchOpen(false);
                     setSearchQuery('');
                     setSearchResults([]);
@@ -2044,7 +1932,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   </div>
                 </div>
               </div>
-
               <div style={{
                 flex: 1,
                 overflowY: 'auto',
@@ -2057,7 +1944,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                 {messages.map((msg) => renderMessage(msg))}
                 <div ref={messagesEndRef} />
               </div>
-
               <div style={{
                 display: 'flex',
                 alignItems: 'flex-end',
@@ -2076,7 +1962,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   </svg>
                   <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileUpload} accept="image/*,video/*" />
                 </label>
-
                 {!isRecording ? (
                   <>
                     <input 
@@ -2150,11 +2035,10 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   }
 
   // ============================================================
-  // ДЕСКТОПНЫЙ РЕНДЕР
+  // ДЕСКТОПНАЯ ВЕРСИЯ
   // ============================================================
   return (
     <div className={`h-dvh flex overflow-hidden ${isLight ? 'bg-gray-100' : 'bg-[#1c1515]'}`}>
-      {/* БОКОВОЕ МЕНЮ */}
       <div className={`${isMobileMenuOpen ? 'absolute inset-0 z-50 flex' : 'hidden md:flex'} md:relative md:z-0 md:flex flex-col w-[320px] max-w-[85vw] md:max-w-[320px] flex-shrink-0 ${isLight ? 'bg-white' : 'bg-[#1f1f1f]'} border-r ${isLight ? 'border-gray-200' : 'border-[#2b2b2b]'}`}>
         <div className={`flex items-center justify-between p-4 ${isLight ? 'bg-gray-50' : 'bg-[#1f1f1f]'}`}>
           <div className="flex items-center gap-3">
@@ -2200,7 +2084,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
             </button>
           </div>
         </div>
-
         {isSearchOpen && (
           <div className={`px-4 py-2 ${isLight ? 'bg-gray-50' : 'bg-[#1f1f1f]'}`}>
             <input
@@ -2233,7 +2116,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
             )}
           </div>
         )}
-
         <div className="flex-1 overflow-y-auto">
           {chats.map((chat) => {
             const name = chat.otherUser;
@@ -2258,8 +2140,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
           })}
         </div>
       </div>
-
-      {/* ОКНО ЧАТА */}
       <div className="flex-1 flex flex-col min-w-0">
         {currentChatId ? (
           <>
@@ -2289,14 +2169,10 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                 </div>
               </div>
             </header>
-
-            {/* СООБЩЕНИЯ */}
             <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3 messages-container">
               {messages.map((msg) => renderMessage(msg))}
               <div ref={messagesEndRef} />
             </div>
-
-            {/* ПОЛЕ ВВОДА */}
             <form onSubmit={sendMessage} className={`flex items-end gap-2 p-3 flex-shrink-0 ${isLight ? 'bg-gray-50 border-t border-gray-200' : 'bg-[#1f1f1f] border-t border-[#2b2b2b]'}`}>
               <label className="cursor-pointer p-2 rounded-full hover:bg-[var(--accent)]/10 transition-all">
                 <svg className={`w-5 h-5 ${isLight ? 'text-gray-600' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2304,7 +2180,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                 </svg>
                 <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} accept="image/*,video/*" />
               </label>
-
               {!isRecording ? (
                 <>
                   <input 
@@ -2351,7 +2226,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
               <GhostIcon className={`w-32 h-36 ${isLight ? 'text-[var(--accent)]' : 'text-white'} opacity-30`} size="large" />
               <div className="absolute inset-0 -m-8 rounded-full border-4 border-[var(--accent)] animate-ping opacity-10"></div>
             </div>
-            
             <span className="text-2xl font-bold text-[var(--accent)]">Whisp</span>
             <span className={`text-sm ${isLight ? 'text-gray-400' : 'text-gray-500'}`}>
               👻 Выберите чат
@@ -2359,8 +2233,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
           </div>
         )}
       </div>
-
-      {/* МОДАЛКА ПРОФИЛЯ */}
       {isProfileOpen && (
         <UserProfileModal
           username={profileUsername}
@@ -2370,8 +2242,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
           avatarUrl={avatarUrl}
         />
       )}
-
-      {/* МОДАЛКА НАСТРОЕК */}
       {isSettingsOpen && (
         <SettingsModal
           username={username}
@@ -2389,5 +2259,70 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
         />
       )}
     </div>
+  );
+}
+
+// ============================================================
+// ЭКСПОРТ ПО УМОЛЧАНИЮ
+// ============================================================
+export default function HomePage() {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLogin, setIsLogin] = useState(true);
+  const [isAuth, setIsAuth] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [accentColor, setAccentColor] = useState('#7c3aed');
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('whisp_theme') as 'dark' | 'light' || 'dark';
+    const savedAccent = localStorage.getItem('whisp_accent') || '#7c3aed';
+    setTheme(savedTheme);
+    setAccentColor(savedAccent);
+    document.documentElement.style.setProperty('--accent', savedAccent);
+
+    const savedUsername = localStorage.getItem('whisp_username');
+    if (savedUsername) {
+      fetch(`/api/profile?username=${savedUsername}`)
+        .then(res => {
+          if (res.ok) {
+            setIsAuth(true);
+            setUsername(savedUsername);
+          } else {
+            localStorage.removeItem('whisp_username');
+          }
+        })
+        .catch(() => localStorage.removeItem('whisp_username'))
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
+  if (loading) return <LoadingScreen theme={theme} />;
+  if (isAuth) {
+    return (
+      <ChatApp
+        username={username}
+        theme={theme}
+        setTheme={setTheme}
+        accentColor={accentColor}
+        setAccentColor={setAccentColor}
+      />
+    );
+  }
+
+  return (
+    <AuthForm
+      username={username}
+      setUsername={setUsername}
+      password={password}
+      setPassword={setPassword}
+      isLogin={isLogin}
+      setIsLogin={setIsLogin}
+      setIsAuth={setIsAuth}
+      theme={theme}
+      accentColor={accentColor}
+    />
   );
 }
