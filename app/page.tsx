@@ -1343,13 +1343,17 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
 
   const handleProfileClick = (user: string) => {
     if (user) {
+      // Закрываем поиск перед открытием профиля
+      setIsSearchOpen(false);
+      setSearchQuery('');
+      setSearchResults([]);
       setProfileUsername(user);
       setIsProfileOpen(true);
     }
   };
 
   // ============================================================
-  // ФУНКЦИЯ ДЛЯ ОТОБРАЖЕНИЯ СООБЩЕНИЯ
+  // ФУНКЦИЯ ДЛЯ ОТОБРАЖЕНИЯ СООБЩЕНИЯ (ИСПРАВЛЕННАЯ - РЕАКЦИИ НЕ ВЫХОДЯТ ЗА ЭКРАН)
   // ============================================================
   const renderMessage = (msg: Message) => {
     const isMy = msg.username === username;
@@ -1441,10 +1445,20 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   </button>
                 )}
 
+                {/* ИСПРАВЛЕНО: реакции не выходят за экран */}
                 <div
                   className={`flex gap-0.5 bg-[#1f1f1f] rounded-full px-2 py-1 shadow-lg border border-[#2f2f2f] z-10 transition-all duration-300 ${
                     showReactions ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-                  }`}
+                  } ${isMy ? 'flex-row' : 'flex-row'}`}
+                  style={{
+                    position: 'absolute',
+                    ...(isMy ? { right: '100%', marginRight: '8px' } : { left: '100%', marginLeft: '8px' }),
+                    top: '50%',
+                    transform: showReactions ? 'translateY(-50%) scale(1)' : 'translateY(-50%) scale(0.95)',
+                    maxWidth: '200px',
+                    overflow: 'visible',
+                    whiteSpace: 'nowrap'
+                  }}
                   onClick={(e) => e.stopPropagation()}
                 >
                   {['❤️', '🔥', '😂', '😢', '👍'].map((emoji) => (
@@ -1473,6 +1487,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                     ? 'bg-white text-gray-900 rounded-bl-sm shadow-md' 
                     : 'bg-[#2b2b2b] text-white rounded-bl-sm'
               }`}
+              style={{ maxWidth: '100%', wordBreak: 'break-word' }}
             >
               {msg.type === 'image' && <img src={msg.text} alt="Фото" className="max-w-[300px] rounded-xl" />}
               {msg.type === 'video' && <video src={msg.text} controls className="max-w-[300px] rounded-xl" />}
@@ -1523,7 +1538,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
 
     return (
       <>
-        {/* МОДАЛКИ - ДОБАВЛЯЕМ ПОВЕРХ ВСЕГО */}
+        {/* МОДАЛКИ ПОВЕРХ ВСЕГО */}
         {isProfileOpen && (
           <UserProfileModal
             username={profileUsername}
@@ -1581,6 +1596,10 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div 
                     onClick={() => {
+                      // Закрываем поиск при открытии профиля
+                      setIsSearchOpen(false);
+                      setSearchQuery('');
+                      setSearchResults([]);
                       setProfileUsername(username);
                       setIsProfileOpen(true);
                     }}
@@ -1612,7 +1631,13 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   </div>
                 </div>
                 <button 
-                  onClick={() => setIsSettingsOpen(true)}
+                  onClick={() => {
+                    // Закрываем поиск при открытии настроек
+                    setIsSearchOpen(false);
+                    setSearchQuery('');
+                    setSearchResults([]);
+                    setIsSettingsOpen(true);
+                  }}
                   style={{
                     padding: '8px',
                     border: 'none',
@@ -1640,6 +1665,10 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                     <div
                       key={chat.id}
                       onClick={() => {
+                        // Закрываем поиск при открытии чата
+                        setIsSearchOpen(false);
+                        setSearchQuery('');
+                        setSearchResults([]);
                         setCurrentChatId(chat.id);
                         setCurrentChatUser(chat.otherUser);
                         loadMessages(chat.id);
@@ -1732,7 +1761,13 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
 
                 <button 
                   onClick={() => {
-                    setIsSearchOpen(!isSearchOpen);
+                    if (isSearchOpen) {
+                      setIsSearchOpen(false);
+                      setSearchQuery('');
+                      setSearchResults([]);
+                    } else {
+                      setIsSearchOpen(true);
+                    }
                   }}
                   style={{
                     display: 'flex',
@@ -1757,6 +1792,10 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
 
                 <button 
                   onClick={() => {
+                    // Закрываем поиск при открытии профиля
+                    setIsSearchOpen(false);
+                    setSearchQuery('');
+                    setSearchResults([]);
                     setProfileUsername(username);
                     setIsProfileOpen(true);
                   }}
@@ -1798,7 +1837,13 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                 </button>
 
                 <button 
-                  onClick={() => setIsSettingsOpen(true)}
+                  onClick={() => {
+                    // Закрываем поиск при открытии настроек
+                    setIsSearchOpen(false);
+                    setSearchQuery('');
+                    setSearchResults([]);
+                    setIsSettingsOpen(true);
+                  }}
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
@@ -1836,7 +1881,11 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
                     <button 
-                      onClick={() => { setIsSearchOpen(false); }}
+                      onClick={() => { 
+                        setIsSearchOpen(false);
+                        setSearchQuery('');
+                        setSearchResults([]);
+                      }}
                       style={{
                         padding: '8px',
                         border: 'none',
@@ -1954,6 +2003,10 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                 </button>
                 <div 
                   onClick={() => {
+                    // Закрываем поиск при открытии профиля
+                    setIsSearchOpen(false);
+                    setSearchQuery('');
+                    setSearchResults([]);
                     setProfileUsername(currentChatUser);
                     setIsProfileOpen(true);
                   }}
