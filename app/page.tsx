@@ -45,7 +45,7 @@ interface UserProfile {
 }
 
 // ============================================================
-// КОМПОНЕНТ ПРИВИДЕНИЯ (без изменений)
+// КОМПОНЕНТ ПРИВИДЕНИЯ
 // ============================================================
 function GhostIcon({ className = "", size = "normal" }: { className?: string; size?: 'small' | 'normal' | 'large' }) {
   const sizes = { small: "w-12 h-14", normal: "w-20 h-24", large: "w-32 h-36" };
@@ -231,7 +231,7 @@ function UserProfileModal({
 }
 
 // ============================================================
-// НАСТРОЙКИ (без изменений)
+// НАСТРОЙКИ
 // ============================================================
 function SettingsModal({
   username,
@@ -672,7 +672,7 @@ function AuthForm({
 }
 
 // ============================================================
-// ГЛАВНЫЙ КОМПОНЕНТ ЧАТА (ИСПРАВЛЕН – АВАТАРКИ ВЕЗДЕ)
+// ГЛАВНЫЙ КОМПОНЕНТ ЧАТА (ИСПРАВЛЕН – АВАТАРКИ ВЕЗДЕ, РЕАКЦИИ, ФОТО, СКРОЛЛ)
 // ============================================================
 function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any) {
   const [chats, setChats] = useState<Chat[]>([]);
@@ -754,7 +754,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   }, [messages]);
 
-  // Загрузка своего аватара
+  // ===================== ЗАГРУЗКА АВАТАРА =====================
   const loadAvatar = async () => {
     try {
       const cached = localStorage.getItem(`whisp_avatar_${username}`);
@@ -771,8 +771,9 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
       const res = await fetch(`/api/profile?username=${username}`);
       if (res.ok) {
         const data = await res.json();
-        if (data.avatarUrl) {
-          const newUrl = data.avatarUrl + '?t=' + Date.now();
+        const avatarUrl = data.avatarUrl || data.avatar_url;
+        if (avatarUrl) {
+          const newUrl = avatarUrl + '?t=' + Date.now();
           setAvatarUrl(newUrl);
           localStorage.setItem(`whisp_avatar_${username}`, newUrl);
         }
@@ -782,10 +783,9 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
-  // Загрузка аватарки для одного пользователя (с кешированием)
+  // ===================== ЗАГРУЗКА АВАТАРА ДРУГОГО ПОЛЬЗОВАТЕЛЯ =====================
   const fetchUserAvatar = async (user: string): Promise<string | null> => {
     try {
-      // Сначала проверяем localStorage
       const cached = localStorage.getItem(`whisp_avatar_${user}`);
       if (cached) {
         if (!cached.includes('?t=')) {
@@ -795,12 +795,12 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
         }
         return cached;
       }
-      // Запрос к API
       const res = await fetch(`/api/profile?username=${encodeURIComponent(user)}`);
       if (res.ok) {
         const data = await res.json();
-        if (data.avatarUrl) {
-          const newUrl = data.avatarUrl + '?t=' + Date.now();
+        const avatarUrl = data.avatarUrl || data.avatar_url;
+        if (avatarUrl) {
+          const newUrl = avatarUrl + '?t=' + Date.now();
           localStorage.setItem(`whisp_avatar_${user}`, newUrl);
           return newUrl;
         }
@@ -812,7 +812,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
-  // Обновление аватара конкретного пользователя в списке чатов
   const updateChatAvatar = (user: string, avatar: string | null) => {
     setChats(prev =>
       prev.map(c =>
@@ -821,7 +820,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     );
   };
 
-  // Гарантировать наличие аватарки для пользователя в списке чатов
   const ensureChatAvatar = async (user: string) => {
     if (!user) return;
     const existing = chats.find(c => c.otherUser === user);
@@ -879,7 +877,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
             console.error('Ошибка загрузки реакций:', error);
           }
         }
-        // Подгружаем аватарку собеседника, если её нет
         if (currentChatUser) {
           await ensureChatAvatar(currentChatUser);
         }
@@ -961,6 +958,41 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     loadChats();
     loadAvatar();
   }, []);
+
+  // ===================== ПОДПИСКА НА ОБНОВЛЕНИЯ ПРОФИЛЕЙ (АВАТАРКИ В РЕАЛЬНОМ ВРЕМЕНИ) =====================
+  useEffect(() => {
+    const profilesChannel = supabase
+      .channel('public:profiles')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles' },
+        (payload) => {
+          const updatedProfile = payload.new as { username: string; avatar_url: string | null };
+          // Обновляем аватарку друга в списке чатов
+          setChats((prevChats) =>
+            prevChats.map((chat) =>
+              chat.otherUser === updatedProfile.username
+                ? { ...chat, otherUserAvatar: updatedProfile.avatar_url }
+                : chat
+            )
+          );
+          // Обновляем свою аватарку, если изменилась
+          if (updatedProfile.username === username) {
+            const newAvatar = updatedProfile.avatar_url;
+            if (newAvatar) {
+              const urlWithTimestamp = newAvatar + '?t=' + Date.now();
+              setAvatarUrl(urlWithTimestamp);
+              localStorage.setItem(`whisp_avatar_${username}`, urlWithTimestamp);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      profilesChannel.unsubscribe();
+    };
+  }, [username]);
 
   // Отправка сообщения
   const sendMessage = async (e?: React.FormEvent) => {
@@ -1190,7 +1222,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }, 350);
   };
 
-  // Реакции
+  // ★★★ ИСПРАВЛЕННАЯ ФУНКЦИЯ toggleReaction: теперь закрывает панель реакций на мобильных ★★★
   const toggleReaction = async (messageId: number | string, emoji: string) => {
     const isTempId = typeof messageId === 'string' && messageId.startsWith('temp_');
     if (isTempId) return;
@@ -1238,6 +1270,11 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ messageId, username, reaction: emoji }),
         });
+      }
+      // ★★★ Закрываем панель реакций на мобильных устройствах ★★★
+      if (isMobile) {
+        setShowReactionsId(null);
+        setHoveredMessageId(null);
       }
       setTimeout(() => {
         setAnimatingReactionId(null);
@@ -1312,7 +1349,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
               }
               return [...prev, newMsg];
             });
-            // Если пришло сообщение от собеседника – проверим его аватарку
             if (newMsg.username !== username) {
               ensureChatAvatar(newMsg.username);
             }
@@ -1396,7 +1432,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   };
 
   // ============================================================
-  // РЕНДЕР ОДНОГО СООБЩЕНИЯ (с аватаркой собеседника)
+  // РЕНДЕР ОДНОГО СООБЩЕНИЯ (с аватаркой собеседника, адаптивными фото)
   // ============================================================
   const renderMessage = (msg: Message) => {
     const isMy = msg.username === username;
@@ -1499,8 +1535,29 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                 }`}
                 style={{ maxWidth: '100%', wordBreak: 'break-word' }}
               >
-                {msg.type === 'image' && <img src={msg.text} alt="Фото" className="max-w-[300px] rounded-xl" />}
-                {msg.type === 'video' && <video src={msg.text} controls className="max-w-[300px] rounded-xl" />}
+                {/* ★★★ ИСПРАВЛЕННЫЙ РЕНДЕРИНГ ФОТО ★★★ */}
+                {msg.type === 'image' && (
+                  <img
+                    src={msg.text}
+                    alt="Фото"
+                    className="rounded-xl"
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '300px',
+                      objectFit: 'contain',
+                      width: 'auto',
+                      height: 'auto',
+                    }}
+                  />
+                )}
+                {msg.type === 'video' && (
+                  <video
+                    src={msg.text}
+                    controls
+                    className="rounded-xl"
+                    style={{ maxWidth: '100%', maxHeight: '300px' }}
+                  />
+                )}
                 {msg.type === 'voice' && (
                   <div className="flex items-center gap-3">
                     <audio controls src={msg.text} className="h-12" />
@@ -1602,7 +1659,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   };
 
   // ============================================================
-  // МОБИЛЬНАЯ ВЕРСИЯ
+  // МОБИЛЬНАЯ ВЕРСИЯ (исправлена кнопка "Чаты", отключен горизонтальный скролл)
   // ============================================================
   if (isMobile) {
     const bgColor = isLight ? '#ffffff' : '#0a0a0a';
@@ -1650,6 +1707,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
             flexDirection: 'column',
             overflow: 'hidden',
             position: 'relative',
+            overflowX: 'hidden', // ★★★ отключаем горизонтальный скролл ★★★
           }}
         >
           {mobileView === 'chats' && (
@@ -1733,6 +1791,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   padding: '8px 12px',
                   paddingBottom: '80px',
                   backgroundColor: bgColor,
+                  overflowX: 'hidden', // ★★★ отключаем горизонтальный скролл ★★★
                 }}
               >
                 {chats.map((chat) => {
@@ -1827,7 +1886,13 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                 }}
               >
                 <button
-                  onClick={() => setMobileView('chats')}
+                  onClick={() => {
+                    // ★★★ Исправлено: при нажатии "Чаты" закрываем поиск и переключаемся ★★★
+                    setIsSearchOpen(false);
+                    setSearchQuery('');
+                    setSearchResults([]);
+                    setMobileView('chats');
+                  }}
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
@@ -1925,6 +1990,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                     zIndex: 200,
                     padding: '20px 16px',
                     paddingTop: 'max(20px, env(safe-area-inset-top))',
+                    overflowX: 'hidden',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
@@ -2138,6 +2204,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   flexDirection: 'column',
                   gap: '6px',
                   backgroundColor: messagesBg,
+                  overflowX: 'hidden',
                 }}
               >
                 {messages.map((msg) => renderMessage(msg))}
@@ -2512,7 +2579,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                 </div>
               </div>
             </header>
-            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3 messages-container">
+            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3 messages-container" style={{ overflowX: 'hidden' }}>
               {messages.map((msg) => renderMessage(msg))}
               <div ref={messagesEndRef} />
             </div>
