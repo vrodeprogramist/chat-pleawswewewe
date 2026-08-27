@@ -45,7 +45,7 @@ interface UserProfile {
 }
 
 // ============================================================
-// КОМПОНЕНТ ПРИВИДЕНИЯ
+// КОМПОНЕНТ ПРИВИДЕНИЯ (без изменений)
 // ============================================================
 function GhostIcon({ className = "", size = "normal" }: { className?: string; size?: 'small' | 'normal' | 'large' }) {
   const sizes = { small: "w-12 h-14", normal: "w-20 h-24", large: "w-32 h-36" };
@@ -101,21 +101,25 @@ function GhostIcon({ className = "", size = "normal" }: { className?: string; si
 }
 
 // ============================================================
-// ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ
+// ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ (исправлен – добавлен userAvatar)
 // ============================================================
-function UserProfileModal({ 
-  username: targetUsername, 
+function UserProfileModal({
+  username: targetUsername,
   currentUsername,
-  onClose, 
+  onClose,
   theme,
   avatarUrl: propAvatarUrl,
+  userAvatar,
 }: any) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const isOwnProfile = targetUsername === currentUsername;
   const isLight = theme === 'light';
-  const displayAvatarUrl = isOwnProfile ? propAvatarUrl : profile?.avatar_url;
+
+  const displayAvatarUrl = isOwnProfile
+    ? propAvatarUrl
+    : (userAvatar || profile?.avatar_url || null);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -184,7 +188,7 @@ function UserProfileModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" onClick={onClose}>
-      <div 
+      <div
         className={`max-w-md w-full rounded-3xl p-6 ${isLight ? 'bg-white' : 'bg-[#1f1f1f]'}`}
         onClick={(e) => e.stopPropagation()}
       >
@@ -213,7 +217,7 @@ function UserProfileModal({
           </div>
         </div>
         {!isOwnProfile && (
-          <button 
+          <button
             onClick={onClose}
             className="w-full mt-6 py-3 rounded-xl text-white font-semibold text-sm transition-all duration-300 hover:opacity-80 active:scale-[0.98]"
             style={{ backgroundColor: 'var(--accent)' }}
@@ -227,18 +231,18 @@ function UserProfileModal({
 }
 
 // ============================================================
-// НАСТРОЙКИ (объединены с профилем, добавлена дата регистрации)
+// НАСТРОЙКИ (без изменений)
 // ============================================================
-function SettingsModal({ 
-  username, 
-  avatarUrl, 
-  setAvatarUrl, 
-  onClose, 
-  theme, 
+function SettingsModal({
+  username,
+  avatarUrl,
+  setAvatarUrl,
+  onClose,
+  theme,
   setTheme,
   accentColor,
   setAccentColor,
-  setIsAuth 
+  setIsAuth,
 }: any) {
   const [isUploading, setIsUploading] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -327,23 +331,37 @@ function SettingsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col" style={{ backgroundColor: bgColor }}>
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '10px 16px',
-        paddingTop: 'max(10px, env(safe-area-inset-top))',
-        borderBottom: `1px solid ${borderColor}`,
-        flexShrink: 0,
-        backgroundColor: bgColor
-      }}>
-        <button onClick={onClose} style={{ padding: '6px', border: 'none', background: 'none', color: textPrimary, cursor: 'pointer', fontSize: '16px' }}>✕</button>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '10px 16px',
+          paddingTop: 'max(10px, env(safe-area-inset-top))',
+          borderBottom: `1px solid ${borderColor}`,
+          flexShrink: 0,
+          backgroundColor: bgColor,
+        }}
+      >
+        <button
+          onClick={onClose}
+          style={{
+            padding: '6px',
+            border: 'none',
+            background: 'none',
+            color: textPrimary,
+            cursor: 'pointer',
+            fontSize: '16px',
+          }}
+        >
+          ✕
+        </button>
         <span style={{ fontWeight: 600, fontSize: '17px', color: textPrimary }}>Настройки</span>
         <div style={{ width: '40px' }} />
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
-          <div 
+          <div
             className="relative cursor-pointer group"
             onClick={() => fileInputRef.current?.click()}
             style={{
@@ -355,7 +373,7 @@ function SettingsModal({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              position: 'relative'
+              position: 'relative',
             }}
           >
             {isUploading ? (
@@ -373,7 +391,13 @@ function SettingsModal({
               <span style={{ color: 'white', fontSize: '11px', fontWeight: 500 }}>📷 Изменить</span>
             </div>
           </div>
-          <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarUpload} />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={handleAvatarUpload}
+          />
         </div>
         <div style={{ textAlign: 'center', marginBottom: '12px' }}>
           <div style={{ fontSize: '18px', fontWeight: 600, color: textPrimary }}>{username}</div>
@@ -389,8 +413,42 @@ function SettingsModal({
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ color: textPrimary, fontSize: '15px' }}>🌙 Тема</span>
               <div style={{ display: 'flex', gap: '6px' }}>
-                <button onClick={() => { setTheme('dark'); localStorage.setItem('whisp_theme', 'dark'); }} style={{ padding: '4px 12px', borderRadius: '6px', border: 'none', backgroundColor: theme === 'dark' ? accentColor : 'transparent', color: theme === 'dark' ? 'white' : textSecondary, fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s' }}>Тёмная</button>
-                <button onClick={() => { setTheme('light'); localStorage.setItem('whisp_theme', 'light'); }} style={{ padding: '4px 12px', borderRadius: '6px', border: 'none', backgroundColor: theme === 'light' ? accentColor : 'transparent', color: theme === 'light' ? 'white' : textSecondary, fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s' }}>Светлая</button>
+                <button
+                  onClick={() => {
+                    setTheme('dark');
+                    localStorage.setItem('whisp_theme', 'dark');
+                  }}
+                  style={{
+                    padding: '4px 12px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    backgroundColor: theme === 'dark' ? accentColor : 'transparent',
+                    color: theme === 'dark' ? 'white' : textSecondary,
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  Тёмная
+                </button>
+                <button
+                  onClick={() => {
+                    setTheme('light');
+                    localStorage.setItem('whisp_theme', 'light');
+                  }}
+                  style={{
+                    padding: '4px 12px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    backgroundColor: theme === 'light' ? accentColor : 'transparent',
+                    color: theme === 'light' ? 'white' : textSecondary,
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  Светлая
+                </button>
               </div>
             </div>
           </div>
@@ -402,7 +460,11 @@ function SettingsModal({
                 {['#7c3aed', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899'].map((c) => (
                   <button
                     key={c}
-                    onClick={() => { setAccentColor(c); localStorage.setItem('whisp_accent', c); document.documentElement.style.setProperty('--accent', c); }}
+                    onClick={() => {
+                      setAccentColor(c);
+                      localStorage.setItem('whisp_accent', c);
+                      document.documentElement.style.setProperty('--accent', c);
+                    }}
                     style={{
                       width: '24px',
                       height: '24px',
@@ -410,7 +472,7 @@ function SettingsModal({
                       border: accentColor === c ? `2px solid ${textPrimary}` : '1px solid transparent',
                       backgroundColor: c,
                       cursor: 'pointer',
-                      transition: 'all 0.2s'
+                      transition: 'all 0.2s',
                     }}
                   />
                 ))}
@@ -418,8 +480,14 @@ function SettingsModal({
             </div>
           </div>
         </div>
-        <button 
-          onClick={() => { if (confirm('Вы уверены?')) { localStorage.removeItem('whisp_username'); setIsAuth(false); onClose(); } }} 
+        <button
+          onClick={() => {
+            if (confirm('Вы уверены?')) {
+              localStorage.removeItem('whisp_username');
+              setIsAuth(false);
+              onClose();
+            }
+          }}
           style={{
             width: '100%',
             padding: '10px',
@@ -430,14 +498,16 @@ function SettingsModal({
             fontSize: '15px',
             fontWeight: 500,
             cursor: 'pointer',
-            transition: 'all 0.2s'
+            transition: 'all 0.2s',
           }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,59,48,0.2)'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,59,48,0.1)'}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,59,48,0.2)')}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,59,48,0.1)')}
         >
           👻 Выйти из аккаунта
         </button>
-        <div style={{ textAlign: 'center', marginTop: '12px', fontSize: '11px', color: textSecondary, opacity: 0.5 }}>Whisp v1.0</div>
+        <div style={{ textAlign: 'center', marginTop: '12px', fontSize: '11px', color: textSecondary, opacity: 0.5 }}>
+          Whisp v1.0
+        </div>
       </div>
     </div>
   );
@@ -454,7 +524,9 @@ function LoadingScreen({ theme }: { theme: string }) {
         <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-16 h-2 bg-[var(--accent)] rounded-full blur-md animate-pulse"></div>
       </div>
       <div className="flex flex-col items-center gap-2">
-        <p className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} animate-pulse`}>Загрузка...</p>
+        <p className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} animate-pulse`}>
+          Загрузка...
+        </p>
         <div className="flex gap-1">
           <span className={`w-2 h-2 rounded-full bg-[var(--accent)] animate-bounce`} style={{ animationDelay: '0s' }}></span>
           <span className={`w-2 h-2 rounded-full bg-[var(--accent)] animate-bounce`} style={{ animationDelay: '0.2s' }}></span>
@@ -542,7 +614,9 @@ function AuthForm({
                   : 'bg-[#1f1f1f] text-white placeholder-gray-500 border-[#2f2f2f]'
               }`}
             />
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg opacity-30 group-hover:opacity-60 transition-opacity duration-300">👻</span>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg opacity-30 group-hover:opacity-60 transition-opacity duration-300">
+              👻
+            </span>
           </div>
           <div className="relative group">
             <input
@@ -557,7 +631,9 @@ function AuthForm({
                   : 'bg-[#1f1f1f] text-white placeholder-gray-500 border-[#2f2f2f]'
               }`}
             />
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg opacity-30 group-hover:opacity-60 transition-opacity duration-300">🔮</span>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg opacity-30 group-hover:opacity-60 transition-opacity duration-300">
+              🔮
+            </span>
           </div>
           <button
             type="submit"
@@ -570,14 +646,18 @@ function AuthForm({
                 <span className="animate-spin inline-block mr-2">👻</span>
                 Загрузка...
               </>
+            ) : isLogin ? (
+              'Войти'
             ) : (
-              isLogin ? 'Войти' : 'Зарегистрироваться'
+              'Зарегистрироваться'
             )}
           </button>
         </form>
         <p
           onClick={() => setIsLogin(!isLogin)}
-          className={`text-sm text-center mt-6 cursor-pointer hover:underline transition-all duration-300 ${isLight ? 'text-gray-500 hover:text-[var(--accent)]' : 'text-gray-400 hover:text-white'}`}
+          className={`text-sm text-center mt-6 cursor-pointer hover:underline transition-all duration-300 ${
+            isLight ? 'text-gray-500 hover:text-[var(--accent)]' : 'text-gray-400 hover:text-white'
+          }`}
         >
           {isLogin ? 'Нет аккаунта? Создать' : 'Уже есть аккаунт? Войти'}
         </p>
@@ -592,7 +672,7 @@ function AuthForm({
 }
 
 // ============================================================
-// ГЛАВНЫЙ КОМПОНЕНТ ЧАТА (ИСПРАВЛЕН – АВАТАРКИ ДРУЗЕЙ ЗАГРУЖАЮТСЯ)
+// ГЛАВНЫЙ КОМПОНЕНТ ЧАТА (ИСПРАВЛЕН)
 // ============================================================
 function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any) {
   const [chats, setChats] = useState<Chat[]>([]);
@@ -643,7 +723,42 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // ★★★ ИСПРАВЛЕННАЯ ЗАГРУЗКА АВАТАРКИ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ ★★★
+  // Функция для удаления дублей сообщений
+  const deduplicateMessages = (msgs: Message[]): Message[] => {
+    const seen = new Map<number | string, Message>();
+    const result: Message[] = [];
+
+    for (const msg of msgs) {
+      // Если есть id, используем его как ключ
+      if (msg.id && typeof msg.id === 'number') {
+        if (!seen.has(msg.id)) {
+          seen.set(msg.id, msg);
+          result.push(msg);
+        }
+      } else if (msg.tempId) {
+        // Для временных сообщений используем tempId
+        if (!seen.has(msg.tempId)) {
+          seen.set(msg.tempId, msg);
+          result.push(msg);
+        }
+      } else {
+        // Если нет ни id, ни tempId - добавляем как есть (крайний случай)
+        result.push(msg);
+      }
+    }
+    return result;
+  };
+
+  // Автоматическая очистка дублей при обновлении messages
+  useEffect(() => {
+    if (messages.length > 0) {
+      const unique = deduplicateMessages(messages);
+      if (unique.length !== messages.length) {
+        setMessages(unique);
+      }
+    }
+  }, [messages]);
+
   const loadAvatar = async () => {
     try {
       const cached = localStorage.getItem(`whisp_avatar_${username}`);
@@ -671,13 +786,11 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
-  // ★★★ ИСПРАВЛЕННАЯ ЗАГРУЗКА ЧАТОВ – ТЕПЕРЬ ЗАГРУЖАЮТСЯ АВАТАРКИ ДРУЗЕЙ ★★★
   const loadChats = async () => {
     try {
       const res = await fetch(`/api/chats?username=${username}`);
       if (res.ok) {
         const data = await res.json();
-        // Загружаем аватарки для каждого друга
         const chatsWithAvatars = await Promise.all(
           data.map(async (chat: Chat) => {
             try {
@@ -705,8 +818,9 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
       const res = await fetch(`/api/messages?chatId=${chatId}`);
       if (res.ok) {
         const data = await res.json();
-        const uniqueMessages = data.filter((msg: Message, index: number, self: Message[]) => 
-          index === self.findIndex((m) => m.id === msg.id)
+        const uniqueMessages = data.filter(
+          (msg: Message, index: number, self: Message[]) =>
+            index === self.findIndex((m) => m.id === msg.id)
         );
         setMessages(uniqueMessages);
         if (uniqueMessages.length > 0) {
@@ -739,13 +853,18 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   }, []);
 
   const searchUsers = async (query: string) => {
-    if (!query.trim()) { setSearchResults([]); return; }
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
     try {
       const res = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`);
       if (res.ok) {
         const data = await res.json();
         const existingUsers = chats.map((c) => c.otherUser);
-        const filtered = data.filter((u: any) => u.username !== username && !existingUsers.includes(u.username));
+        const filtered = data.filter(
+          (u: any) => u.username !== username && !existingUsers.includes(u.username)
+        );
         setSearchResults(filtered);
       }
     } catch (error) {
@@ -803,7 +922,9 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
       reactions: [],
     };
     setMessages((prev) => {
-      const exists = prev.some((m) => m.tempId === tempId || (m.text === currentText && m.username === username && !m.id));
+      const exists = prev.some(
+        (m) => m.tempId === tempId || (m.text === currentText && m.username === username && !m.id)
+      );
       if (exists) return prev;
       return [...prev, optimisticMessage];
     });
@@ -814,22 +935,34 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
       const res = await fetch('/api/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          chatId: currentChatId, 
-          username, 
-          text: currentText, 
-          type: 'text', 
+        body: JSON.stringify({
+          chatId: currentChatId,
+          username,
+          text: currentText,
+          type: 'text',
           avatar_url: avatarUrl,
-          tempId: tempId 
+          tempId: tempId,
         }),
       });
       if (res.ok) {
         const data = await res.json();
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.tempId === tempId ? { ...msg, id: data.id, tempId: undefined } : msg
-          )
-        );
+        setMessages((prev) => {
+          // Ищем временное сообщение по tempId
+          const index = prev.findIndex((msg) => msg.tempId === tempId);
+          if (index !== -1) {
+            const updated = [...prev];
+            // Если уже есть сообщение с таким id, удаляем его (чтобы избежать дубля)
+            const existingIdIndex = updated.findIndex((msg) => msg.id === data.id);
+            if (existingIdIndex !== -1 && existingIdIndex !== index) {
+              updated.splice(existingIdIndex, 1);
+            }
+            updated[index] = { ...updated[index], id: data.id, tempId: undefined };
+            return updated;
+          }
+          // Если не нашли временное (например, уже заменено через WebSocket) – не добавляем дубль
+          if (prev.some((msg) => msg.id === data.id)) return prev;
+          return [...prev, { ...optimisticMessage, id: data.id, tempId: undefined }];
+        });
         pendingMessagesRef.current.delete(tempId);
         setPendingMessages((prev) => {
           const newSet = new Set(prev);
@@ -990,7 +1123,9 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
           const data = await res.json();
           alert(data.error || 'Ошибка удаления');
         }
-      } catch (error) { console.error('Ошибка удаления:', error); }
+      } catch (error) {
+        console.error('Ошибка удаления:', error);
+      }
       setDeletingMessageId(null);
     }, 350);
   };
@@ -1046,7 +1181,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
       setTimeout(() => {
         setAnimatingReactionId(null);
       }, 300);
-    } catch (error) { 
+    } catch (error) {
       console.error('Ошибка реакции:', error);
       setAnimatingReactionId(null);
     }
@@ -1091,8 +1226,10 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
+  // Подписка на сообщения с дедупликацией
   useEffect(() => {
     if (!currentChatId) return;
+
     const messagesChannel = supabase
       .channel('public:messages')
       .on(
@@ -1102,18 +1239,22 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
           const newMsg = payload.new as Message;
           if (newMsg.chat_id === currentChatId) {
             setMessages((prev) => {
-              if (newMsg.tempId && pendingMessagesRef.current.has(newMsg.tempId)) return prev;
-              if (prev.some((m) => m.id === newMsg.id)) return prev;
-              if (newMsg.username === username && newMsg.created_at) {
-                const now = new Date().getTime();
-                const msgTime = new Date(newMsg.created_at).getTime();
-                if (now - msgTime < 2000) {
-                  const similar = prev.some(
-                    (m) => m.text === newMsg.text && m.username === username && !m.id
-                  );
-                  if (similar) return prev;
+              // 1. Если уже есть сообщение с таким id – не добавляем
+              if (newMsg.id && prev.some((m) => m.id === newMsg.id)) return prev;
+              
+              // 2. Если это сообщение от текущего пользователя – удаляем все временные с таким же текстом
+              if (newMsg.username === username && newMsg.text) {
+                // Удаляем все временные сообщения от текущего пользователя с таким же текстом
+                const filtered = prev.filter(
+                  (m) => !(m.username === username && !m.id && m.text === newMsg.text)
+                );
+                // Если были удалены, добавляем новое, иначе просто добавляем новое (если нет дубля по id)
+                if (filtered.length !== prev.length) {
+                  return [...filtered, newMsg];
                 }
               }
+
+              // 3. Иначе просто добавляем (если нет дубля по id – уже проверили)
               return [...prev, newMsg];
             });
             setTimeout(scrollToBottom, 50);
@@ -1121,6 +1262,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
         }
       )
       .subscribe();
+
     const deleteChannel = supabase
       .channel('public:messages:delete')
       .on(
@@ -1134,13 +1276,14 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
         }
       )
       .subscribe();
+
     const reactionsChannel = supabase
       .channel('public:reactions')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'reactions' },
         async () => {
-          const currentMessages = messages.filter(m => typeof m.id === 'number');
+          const currentMessages = messages.filter((m) => typeof m.id === 'number');
           if (currentMessages.length === 0) return;
           const ids = currentMessages.map((m) => m.id);
           try {
@@ -1165,15 +1308,16 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
         }
       )
       .subscribe();
+
     return () => {
       messagesChannel.unsubscribe();
       deleteChannel.unsubscribe();
       reactionsChannel.unsubscribe();
     };
-  }, [currentChatId]);
+  }, [currentChatId, messages, username]);
 
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  
+
   const formatTime = (date?: string) => {
     if (!date) return '';
     const d = new Date(date);
@@ -1192,9 +1336,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
-  // ============================================================
-  // ОТРИСОВКА СООБЩЕНИЙ (АВАТАРКИ ДРУЗЕЙ В СООБЩЕНИЯХ)
-  // ============================================================
+  // Отрисовка сообщений с уникальными ключами
   const renderMessage = (msg: Message) => {
     const isMy = msg.username === username;
     const msgReactions = msg.reactions || [];
@@ -1208,10 +1350,10 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     const isHovered = hoveredMessageId === msg.id || hoveredMessageId === msg.tempId;
     const isAnimating = animatingReactionId === msg.id;
     const isPending = msg.tempId ? pendingMessages.has(msg.tempId) : false;
-    const key = msg.id || msg.tempId || `msg-${Math.random()}`;
+    // Уникальный ключ с дополнительным суффиксом для гарантии
+    const key = msg.id ? `msg-${msg.id}` : `msg-temp-${msg.tempId || Math.random()}`;
 
-    // Находим аватарку отправителя из чатов (если это не текущий пользователь)
-    const senderAvatar = !isMy ? chats.find(c => c.otherUser === msg.username)?.otherUserAvatar : null;
+    const senderAvatar = !isMy ? chats.find((c) => c.otherUser === msg.username)?.otherUserAvatar : null;
 
     return (
       <div
@@ -1241,7 +1383,9 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
         <div className={`max-w-[80%] ${isMy ? 'flex flex-col items-end' : ''}`}>
           {!isMy && (
             <span
-              className={`text-sm font-medium ml-2 mb-1 cursor-pointer hover:underline ${isLight ? 'text-gray-600' : 'text-gray-400'}`}
+              className={`text-sm font-medium ml-2 mb-1 cursor-pointer hover:underline ${
+                isLight ? 'text-gray-600' : 'text-gray-400'
+              }`}
               onClick={(e) => {
                 e.stopPropagation();
                 handleProfileClick(msg.username);
@@ -1260,12 +1404,19 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                     deleteMessage(msg.id || msg.tempId || key);
                   }}
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-base transition-all hover:scale-110 ${
-                    isLight ? 'bg-gray-200 text-gray-600 hover:bg-gray-300' : 'bg-[#2b2b2b] text-gray-400 hover:bg-[#3b3b3b]'
+                    isLight
+                      ? 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                      : 'bg-[#2b2b2b] text-gray-400 hover:bg-[#3b3b3b]'
                   }`}
                   title="Удалить"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
                   </svg>
                 </button>
               )}
@@ -1274,8 +1425,8 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   isMy
                     ? 'bg-[var(--accent)] text-white rounded-br-sm'
                     : isLight
-                      ? 'bg-white text-gray-900 rounded-bl-sm shadow-md'
-                      : 'bg-[#2b2b2b] text-white rounded-bl-sm'
+                    ? 'bg-white text-gray-900 rounded-bl-sm shadow-md'
+                    : 'bg-[#2b2b2b] text-white rounded-bl-sm'
                 }`}
                 style={{ maxWidth: '100%', wordBreak: 'break-word' }}
               >
@@ -1300,7 +1451,9 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-base transition-all hover:scale-110 ${
                     showReactions
                       ? 'bg-[var(--accent)]/30'
-                      : isLight ? 'bg-gray-200 hover:bg-gray-300' : 'bg-[#2b2b2b] hover:bg-[#3b3b3b]'
+                      : isLight
+                      ? 'bg-gray-200 hover:bg-gray-300'
+                      : 'bg-[#2b2b2b] hover:bg-[#3b3b3b]'
                   }`}
                 >
                   😊
@@ -1318,17 +1471,16 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   ...(isMobile
                     ? { marginTop: '4px', alignSelf: isMy ? 'flex-end' : 'flex-start' }
                     : isMy
-                      ? { right: '100%', marginRight: '8px' }
-                      : { left: '100%', marginLeft: '8px' }
-                  ),
+                    ? { right: '100%', marginRight: '8px' }
+                    : { left: '100%', marginLeft: '8px' }),
                   top: isMobile ? 'auto' : '50%',
                   transform: showReactions
                     ? isMobile
                       ? 'scale(1)'
                       : 'translateY(-50%) scale(1)'
                     : isMobile
-                      ? 'scale(0.95)'
-                      : 'translateY(-50%) scale(0.95)',
+                    ? 'scale(0.95)'
+                    : 'translateY(-50%) scale(0.95)',
                   maxWidth: isMobile ? '100%' : '200px',
                   overflow: 'visible',
                   whiteSpace: isMobile ? 'normal' : 'nowrap',
@@ -1339,7 +1491,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
               >
                 {['❤️', '🔥', '😂', '😢', '👍'].map((emoji) => (
                   <button
-                    key={`${msg.id}-${emoji}`}
+                    key={`${msg.id || msg.tempId}-${emoji}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleReaction(msg.id || msg.tempId || key, emoji);
@@ -1359,7 +1511,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
             <div className={`flex flex-wrap gap-1.5 mt-1 ${isMy ? 'justify-end' : ''}`}>
               {Object.entries(groupedReactions).map(([emoji, count]) => (
                 <span
-                  key={`${msg.id}-${emoji}-count`}
+                  key={`${msg.id || msg.tempId}-${emoji}-count`}
                   className={`text-sm px-2 py-0.5 rounded-full ${
                     isLight ? 'bg-gray-200 text-gray-700' : 'bg-[#2b2b2b] text-gray-300'
                   }`}
@@ -1381,7 +1533,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   };
 
   // ============================================================
-  // МОБИЛЬНАЯ ВЕРСИЯ (с аватарками друзей в списке)
+  // МОБИЛЬНАЯ ВЕРСИЯ (без изменений)
   // ============================================================
   if (isMobile) {
     const bgColor = isLight ? '#ffffff' : '#0a0a0a';
@@ -1401,6 +1553,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
             onClose={() => setIsProfileOpen(false)}
             theme={theme}
             avatarUrl={avatarUrl}
+            userAvatar={chats.find((c) => c.otherUser === profileUsername)?.otherUserAvatar || null}
           />
         )}
         {isSettingsOpen && (
@@ -1419,34 +1572,38 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
             }}
           />
         )}
-        <div style={{ 
-          backgroundColor: bgColor,
-          color: textPrimary,
-          height: '100dvh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          position: 'relative'
-        }}>
+        <div
+          style={{
+            backgroundColor: bgColor,
+            color: textPrimary,
+            height: '100dvh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            position: 'relative',
+          }}
+        >
           {mobileView === 'chats' && (
             <>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '12px 16px',
-                paddingTop: 'max(12px, env(safe-area-inset-top))',
-                background: headerBg,
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-                borderBottom: `1px solid ${borderColor}`,
-                flexShrink: 0,
-                position: 'sticky',
-                top: 0,
-                zIndex: 50
-              }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 16px',
+                  paddingTop: 'max(12px, env(safe-area-inset-top))',
+                  background: headerBg,
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)',
+                  borderBottom: `1px solid ${borderColor}`,
+                  flexShrink: 0,
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 50,
+                }}
+              >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div 
+                  <div
                     onClick={() => {
                       setIsSearchOpen(false);
                       setSearchQuery('');
@@ -1466,7 +1623,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                       fontSize: '16px',
                       overflow: 'hidden',
                       cursor: 'pointer',
-                      flexShrink: 0
+                      flexShrink: 0,
                     }}
                   >
                     {avatarUrl ? (
@@ -1480,7 +1637,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                     <div style={{ fontSize: '12px', color: textSecondary }}>👻 {username}</div>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => {
                     setIsSearchOpen(false);
                     setSearchQuery('');
@@ -1492,21 +1649,23 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                     border: 'none',
                     background: 'none',
                     color: textPrimary,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
                   }}
                 >
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                    <path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                   </svg>
                 </button>
               </div>
-              <div style={{
-                flex: 1,
-                overflowY: 'auto',
-                padding: '8px 12px',
-                paddingBottom: '80px',
-                backgroundColor: bgColor
-              }}>
+              <div
+                style={{
+                  flex: 1,
+                  overflowY: 'auto',
+                  padding: '8px 12px',
+                  paddingBottom: '80px',
+                  backgroundColor: bgColor,
+                }}
+              >
                 {chats.map((chat) => {
                   const name = chat.otherUser;
                   const friendAvatar = chat.otherUserAvatar;
@@ -1531,7 +1690,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                         cursor: 'pointer',
                         transition: 'all 0.15s ease',
                         marginBottom: '2px',
-                        backgroundColor: 'transparent'
+                        backgroundColor: 'transparent',
                       }}
                     >
                       <div
@@ -1547,7 +1706,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                           fontWeight: 600,
                           color: 'white',
                           background: friendAvatar ? 'transparent' : accentColor,
-                          overflow: 'hidden'
+                          overflow: 'hidden',
                         }}
                       >
                         {friendAvatar ? (
@@ -1559,13 +1718,28 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 500, fontSize: '16px', color: textPrimary }}>{name}</div>
                         {chat.lastMessage && (
-                          <div style={{ fontSize: '13px', color: textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <div
+                            style={{
+                              fontSize: '13px',
+                              color: textSecondary,
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
+                          >
                             {chat.lastMessage}
                           </div>
                         )}
                       </div>
                       {chat.lastMessageTime && (
-                        <div style={{ fontSize: '11px', color: textSecondary, flexShrink: 0, marginLeft: '8px' }}>
+                        <div
+                          style={{
+                            fontSize: '11px',
+                            color: textSecondary,
+                            flexShrink: 0,
+                            marginLeft: '8px',
+                          }}
+                        >
                           {formatTime(new Date(chat.lastMessageTime).toISOString())}
                         </div>
                       )}
@@ -1573,23 +1747,25 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   );
                 })}
               </div>
-              <div style={{
-                position: 'fixed',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                display: 'flex',
-                justifyContent: 'space-around',
-                alignItems: 'center',
-                padding: '8px 0',
-                paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
-                background: headerBg,
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-                borderTop: `1px solid ${borderColor}`,
-                zIndex: 100
-              }}>
-                <button 
+              <div
+                style={{
+                  position: 'fixed',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  display: 'flex',
+                  justifyContent: 'space-around',
+                  alignItems: 'center',
+                  padding: '8px 0',
+                  paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
+                  background: headerBg,
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)',
+                  borderTop: `1px solid ${borderColor}`,
+                  zIndex: 100,
+                }}
+              >
+                <button
                   onClick={() => setMobileView('chats')}
                   style={{
                     display: 'flex',
@@ -1603,15 +1779,22 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                     fontSize: '10px',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
-                    position: 'relative'
+                    position: 'relative',
                   }}
                 >
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill={mobileView === 'chats' ? accentColor : 'none'} stroke="currentColor" strokeWidth="2">
-                    <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                  <svg
+                    width="26"
+                    height="26"
+                    viewBox="0 0 24 24"
+                    fill={mobileView === 'chats' ? accentColor : 'none'}
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                   <span>Чаты</span>
                 </button>
-                <button 
+                <button
                   onClick={() => {
                     if (isSearchOpen) {
                       setIsSearchOpen(false);
@@ -1633,15 +1816,15 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                     fontSize: '10px',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
-                    position: 'relative'
+                    position: 'relative',
                   }}
                 >
                   <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                   <span>Поиск</span>
                 </button>
-                <button 
+                <button
                   onClick={() => {
                     setIsSearchOpen(false);
                     setSearchQuery('');
@@ -1660,30 +1843,32 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                     fontSize: '10px',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
-                    position: 'relative'
+                    position: 'relative',
                   }}
                 >
                   <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                    <path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                   </svg>
                   <span>Настройки</span>
                 </button>
               </div>
               {isSearchOpen && (
-                <div style={{
-                  position: 'fixed',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  backgroundColor: bgColor,
-                  zIndex: 200,
-                  padding: '20px 16px',
-                  paddingTop: 'max(20px, env(safe-area-inset-top))'
-                }}>
+                <div
+                  style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: bgColor,
+                    zIndex: 200,
+                    padding: '20px 16px',
+                    paddingTop: 'max(20px, env(safe-area-inset-top))',
+                  }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                    <button 
-                      onClick={() => { 
+                    <button
+                      onClick={() => {
                         setIsSearchOpen(false);
                         setSearchQuery('');
                         setSearchResults([]);
@@ -1693,20 +1878,20 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                         border: 'none',
                         background: 'none',
                         color: textPrimary,
-                        cursor: 'pointer'
+                        cursor: 'pointer',
                       }}
                     >
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M15 18l-6-6 6-6"/>
+                        <path d="M15 18l-6-6 6-6" />
                       </svg>
                     </button>
                     <input
                       type="text"
                       placeholder="Поиск..."
                       value={searchQuery}
-                      onChange={(e) => { 
-                        setSearchQuery(e.target.value); 
-                        searchUsers(e.target.value); 
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        searchUsers(e.target.value);
                       }}
                       style={{
                         flex: 1,
@@ -1716,7 +1901,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                         background: inputFieldBg,
                         color: textPrimary,
                         fontSize: '15px',
-                        outline: 'none'
+                        outline: 'none',
                       }}
                       autoFocus
                     />
@@ -1733,21 +1918,23 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                             gap: '12px',
                             padding: '12px 14px',
                             borderRadius: '12px',
-                            cursor: 'pointer'
+                            cursor: 'pointer',
                           }}
                         >
-                          <div style={{
-                            width: '44px',
-                            height: '44px',
-                            borderRadius: '50%',
-                            background: accentColor,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: 'white',
-                            fontSize: '18px',
-                            fontWeight: 600
-                          }}>
+                          <div
+                            style={{
+                              width: '44px',
+                              height: '44px',
+                              borderRadius: '50%',
+                              background: accentColor,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: 'white',
+                              fontSize: '18px',
+                              fontWeight: 600,
+                            }}
+                          >
                             {user.username?.charAt(0).toUpperCase() || '?'}
                           </div>
                           <div style={{ flex: 1 }}>
@@ -1769,22 +1956,24 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
           )}
           {mobileView === 'chat' && currentChatId && (
             <>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '8px 12px',
-                paddingTop: 'max(8px, env(safe-area-inset-top))',
-                background: headerBg,
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-                borderBottom: `1px solid ${borderColor}`,
-                gap: '10px',
-                flexShrink: 0,
-                position: 'sticky',
-                top: 0,
-                zIndex: 50
-              }}>
-                <button 
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '8px 12px',
+                  paddingTop: 'max(8px, env(safe-area-inset-top))',
+                  background: headerBg,
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)',
+                  borderBottom: `1px solid ${borderColor}`,
+                  gap: '10px',
+                  flexShrink: 0,
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 50,
+                }}
+              >
+                <button
                   onClick={() => {
                     setMobileView('chats');
                     setCurrentChatId(null);
@@ -1794,14 +1983,14 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                     border: 'none',
                     background: 'none',
                     color: textPrimary,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
                   }}
                 >
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M15 18l-6-6 6-6"/>
+                    <path d="M15 18l-6-6 6-6" />
                   </svg>
                 </button>
-                <div 
+                <div
                   onClick={() => {
                     setIsSearchOpen(false);
                     setSearchQuery('');
@@ -1814,28 +2003,64 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                     alignItems: 'center',
                     gap: '10px',
                     flex: 1,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
                   }}
                 >
-                  <div style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '50%',
-                    background: accentColor,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontWeight: 600,
-                    fontSize: '16px',
-                    overflow: 'hidden',
-                    flexShrink: 0
-                  }}>
-                    {currentChatUser === username && avatarUrl ? (
-                      <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      currentChatUser?.charAt(0).toUpperCase() || '?'
-                    )}
+                  <div
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontWeight: 600,
+                      fontSize: '16px',
+                      overflow: 'hidden',
+                      flexShrink: 0,
+                      background: 'transparent',
+                    }}
+                  >
+                    {(() => {
+                      const chat = chats.find((c) => c.otherUser === currentChatUser);
+                      const friendAvatar = chat?.otherUserAvatar;
+                      if (currentChatUser === username) {
+                        return avatarUrl ? (
+                          <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          <div
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              background: accentColor,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            {username?.charAt(0).toUpperCase() || '?'}
+                          </div>
+                        );
+                      } else {
+                        return friendAvatar ? (
+                          <img src={friendAvatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          <div
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              background: accentColor,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            {currentChatUser?.charAt(0).toUpperCase() || '?'}
+                          </div>
+                        );
+                      }
+                    })()}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 500, fontSize: '16px', color: textPrimary }}>{currentChatUser}</div>
@@ -1843,43 +2068,61 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   </div>
                 </div>
               </div>
-              <div style={{
-                flex: 1,
-                overflowY: 'auto',
-                padding: '12px 16px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '6px',
-                backgroundColor: messagesBg
-              }}>
+              <div
+                style={{
+                  flex: 1,
+                  overflowY: 'auto',
+                  padding: '12px 16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                  backgroundColor: messagesBg,
+                }}
+              >
                 {messages.map((msg) => renderMessage(msg))}
                 <div ref={messagesEndRef} />
               </div>
-              <div style={{
-                display: 'flex',
-                alignItems: 'flex-end',
-                gap: '8px',
-                padding: '8px 12px',
-                paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
-                background: headerBg,
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-                borderTop: `1px solid ${borderColor}`,
-                flexShrink: 0
-              }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-end',
+                  gap: '8px',
+                  padding: '8px 12px',
+                  paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
+                  background: headerBg,
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)',
+                  borderTop: `1px solid ${borderColor}`,
+                  flexShrink: 0,
+                }}
+              >
                 <label style={{ cursor: 'pointer', padding: '4px' }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: textSecondary }}>
-                    <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    style={{ color: textSecondary }}
+                  >
+                    <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
-                  <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileUpload} accept="image/*,video/*" />
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    style={{ display: 'none' }}
+                    onChange={handleFileUpload}
+                    accept="image/*,video/*"
+                  />
                 </label>
                 {!isRecording ? (
                   <>
-                    <input 
-                      type="text" 
-                      value={text} 
-                      onChange={(e) => setText(e.target.value)} 
-                      placeholder="Сообщение..." 
+                    <input
+                      type="text"
+                      value={text}
+                      onChange={(e) => setText(e.target.value)}
+                      placeholder="Сообщение..."
                       style={{
                         flex: 1,
                         padding: '10px 14px',
@@ -1889,26 +2132,29 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                         color: textPrimary,
                         fontSize: '15px',
                         outline: 'none',
-                        minHeight: '40px'
+                        minHeight: '40px',
                       }}
                     />
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       onClick={startRecording}
                       style={{
                         padding: '8px',
                         border: 'none',
                         background: 'none',
                         color: textSecondary,
-                        cursor: 'pointer'
+                        cursor: 'pointer',
                       }}
                     >
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+                        <path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                       </svg>
                     </button>
-                    <button 
-                      onClick={(e) => { e.preventDefault(); sendMessage(); }} 
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        sendMessage();
+                      }}
                       disabled={isSending || !text.trim()}
                       style={{
                         padding: '10px 16px',
@@ -1920,21 +2166,48 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                         opacity: isSending || !text.trim() ? 0.5 : 1,
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
                       }}
                     >
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
                       </svg>
                     </button>
                   </>
                 ) : (
                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <span style={{ fontSize: '14px', fontFamily: 'monospace', color: textPrimary }}>
-                      {String(Math.floor(recordingTime / 60)).padStart(2, '0')}:{String(recordingTime % 60).padStart(2, '0')}
+                      {String(Math.floor(recordingTime / 60)).padStart(2, '0')}:
+                      {String(recordingTime % 60).padStart(2, '0')}
                     </span>
-                    <button type="button" onClick={cancelRecording} style={{ color: 'red', padding: '4px', background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer' }}>✕</button>
-                    <button type="button" onClick={stopRecording} style={{ color: 'green', padding: '4px', background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer' }}>●</button>
+                    <button
+                      type="button"
+                      onClick={cancelRecording}
+                      style={{
+                        color: 'red',
+                        padding: '4px',
+                        background: 'none',
+                        border: 'none',
+                        fontSize: '18px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      ✕
+                    </button>
+                    <button
+                      type="button"
+                      onClick={stopRecording}
+                      style={{
+                        color: 'green',
+                        padding: '4px',
+                        background: 'none',
+                        border: 'none',
+                        fontSize: '18px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      ●
+                    </button>
                   </div>
                 )}
               </div>
@@ -1946,14 +2219,23 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   }
 
   // ============================================================
-  // ДЕСКТОПНАЯ ВЕРСИЯ (с аватарками друзей в списке)
+  // ДЕСКТОПНАЯ ВЕРСИЯ (без изменений)
   // ============================================================
   return (
     <div className={`h-dvh flex overflow-hidden ${isLight ? 'bg-gray-100' : 'bg-[#1c1515]'}`}>
-      <div className={`${isMobileMenuOpen ? 'absolute inset-0 z-50 flex' : 'hidden md:flex'} md:relative md:z-0 md:flex flex-col w-[320px] max-w-[85vw] md:max-w-[320px] flex-shrink-0 ${isLight ? 'bg-white' : 'bg-[#1f1f1f]'} border-r ${isLight ? 'border-gray-200' : 'border-[#2b2b2b]'}`}>
+      <div
+        className={`${
+          isMobileMenuOpen ? 'absolute inset-0 z-50 flex' : 'hidden md:flex'
+        } md:relative md:z-0 md:flex flex-col w-[320px] max-w-[85vw] md:max-w-[320px] flex-shrink-0 ${
+          isLight ? 'bg-white' : 'bg-[#1f1f1f]'
+        } border-r ${isLight ? 'border-gray-200' : 'border-[#2b2b2b]'}`}
+      >
         <div className={`flex items-center justify-between p-4 ${isLight ? 'bg-gray-50' : 'bg-[#1f1f1f]'}`}>
           <div className="flex items-center gap-3">
-            <button onClick={() => handleProfileClick(username)} className="w-10 h-10 rounded-full overflow-hidden bg-[var(--accent)] flex items-center justify-center text-white font-bold text-sm">
+            <button
+              onClick={() => handleProfileClick(username)}
+              className="w-10 h-10 rounded-full overflow-hidden bg-[var(--accent)] flex items-center justify-center text-white font-bold text-sm"
+            >
               {avatarUrl ? (
                 <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
@@ -1963,18 +2245,55 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
             <span className={`font-semibold ${isLight ? 'text-gray-900' : 'text-white'}`}>{username}</span>
           </div>
           <div className="flex items-center gap-1">
-            <button onClick={() => { setIsSearchOpen(!isSearchOpen); if (!isSearchOpen) setSearchResults([]); }} className="p-2 rounded-full hover:bg-[var(--accent)]/10 transition-all">
-              <svg className={`w-5 h-5 ${isLight ? 'text-gray-700' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <button
+              onClick={() => {
+                setIsSearchOpen(!isSearchOpen);
+                if (!isSearchOpen) setSearchResults([]);
+              }}
+              className="p-2 rounded-full hover:bg-[var(--accent)]/10 transition-all"
+            >
+              <svg
+                className={`w-5 h-5 ${isLight ? 'text-gray-700' : 'text-gray-400'}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
               </svg>
             </button>
-            <button onClick={() => setIsSettingsOpen(true)} className="p-2 rounded-full hover:bg-[var(--accent)]/10 transition-all">
-              <svg className={`w-5 h-5 ${isLight ? 'text-gray-700' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            <button
+              onClick={() => setIsSettingsOpen(true)}
+              className="p-2 rounded-full hover:bg-[var(--accent)]/10 transition-all"
+            >
+              <svg
+                className={`w-5 h-5 ${isLight ? 'text-gray-700' : 'text-gray-400'}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+                />
               </svg>
             </button>
-            <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden p-2 rounded-full hover:bg-gray-700/20 transition-all">
-              <svg className={`w-5 h-5 ${isLight ? 'text-gray-700' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="md:hidden p-2 rounded-full hover:bg-gray-700/20 transition-all"
+            >
+              <svg
+                className={`w-5 h-5 ${isLight ? 'text-gray-700' : 'text-gray-400'}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -1986,19 +2305,35 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
               type="text"
               placeholder="Поиск..."
               value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); searchUsers(e.target.value); }}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                searchUsers(e.target.value);
+              }}
               className={`w-full p-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all ${
-                isLight ? 'bg-white text-gray-900 placeholder-gray-400' : 'bg-[#2b2b2f] text-white placeholder-gray-500'
+                isLight
+                  ? 'bg-white text-gray-900 placeholder-gray-400'
+                  : 'bg-[#2b2b2f] text-white placeholder-gray-500'
               }`}
             />
             {searchResults.length > 0 && (
               <div className="mt-2 space-y-1">
                 {searchResults.map((user) => (
-                  <button key={user.username} onClick={() => createChat(user.username)} className={`w-full flex items-center gap-3 p-2 rounded-xl transition-all ${isLight ? 'hover:bg-gray-200' : 'hover:bg-[#2b2b2f]'}`}>
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: getAvatarColor(user.username) }}>
+                  <button
+                    key={user.username}
+                    onClick={() => createChat(user.username)}
+                    className={`w-full flex items-center gap-3 p-2 rounded-xl transition-all ${
+                      isLight ? 'hover:bg-gray-200' : 'hover:bg-[#2b2b2f]'
+                    }`}
+                  >
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm"
+                      style={{ backgroundColor: getAvatarColor(user.username) }}
+                    >
                       {user.username?.charAt(0).toUpperCase() || '?'}
                     </div>
-                    <span className={`text-sm ${isLight ? 'text-gray-900' : 'text-white'}`}>{user.username}</span>
+                    <span className={`text-sm ${isLight ? 'text-gray-900' : 'text-white'}`}>
+                      {user.username}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -2012,8 +2347,19 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
             return (
               <button
                 key={chat.id}
-                onClick={() => { setCurrentChatId(chat.id); setCurrentChatUser(chat.otherUser); loadMessages(chat.id); if (window.innerWidth < 768) setIsMobileMenuOpen(false); }}
-                className={`w-full flex items-center gap-3 p-3 transition-all ${currentChatId === chat.id ? (isLight ? 'bg-gray-200' : 'bg-[#2b2b2f]') : 'hover:bg-[var(--accent)]/5'}`}
+                onClick={() => {
+                  setCurrentChatId(chat.id);
+                  setCurrentChatUser(chat.otherUser);
+                  loadMessages(chat.id);
+                  if (window.innerWidth < 768) setIsMobileMenuOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 p-3 transition-all ${
+                  currentChatId === chat.id
+                    ? isLight
+                      ? 'bg-gray-200'
+                      : 'bg-[#2b2b2f]'
+                    : 'hover:bg-[var(--accent)]/5'
+                }`}
               >
                 <div
                   className="w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center text-white font-bold text-lg overflow-hidden"
@@ -2027,10 +2373,18 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                 </div>
                 <div className="flex-1 text-left min-w-0">
                   <div className="flex items-center justify-between">
-                    <span className={`font-medium text-sm truncate ${isLight ? 'text-gray-900' : 'text-white'}`}>{name}</span>
-                    <span className={`text-xs flex-shrink-0 ${isLight ? 'text-gray-400' : 'text-gray-500'}`}>{chat.lastMessageTime ? formatTime(new Date(chat.lastMessageTime).toISOString()) : ''}</span>
+                    <span className={`font-medium text-sm truncate ${isLight ? 'text-gray-900' : 'text-white'}`}>
+                      {name}
+                    </span>
+                    <span className={`text-xs flex-shrink-0 ${isLight ? 'text-gray-400' : 'text-gray-500'}`}>
+                      {chat.lastMessageTime ? formatTime(new Date(chat.lastMessageTime).toISOString()) : ''}
+                    </span>
                   </div>
-                  {chat.lastMessage && <span className={`text-xs truncate block ${isLight ? 'text-gray-500' : 'text-gray-400'}`}>{chat.lastMessage}</span>}
+                  {chat.lastMessage && (
+                    <span className={`text-xs truncate block ${isLight ? 'text-gray-500' : 'text-gray-400'}`}>
+                      {chat.lastMessage}
+                    </span>
+                  )}
                 </div>
               </button>
             );
@@ -2040,23 +2394,65 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
       <div className="flex-1 flex flex-col min-w-0">
         {currentChatId ? (
           <>
-            <header className={`flex items-center gap-3 p-3 flex-shrink-0 cursor-pointer ${isLight ? 'bg-gray-50 border-b border-gray-200' : 'bg-[#1f1f1f] border-b border-[#2b2b2b]'}`}>
-              <button onClick={() => { if (window.innerWidth < 768) setIsMobileMenuOpen(true); }} className="md:hidden p-1 rounded-full hover:bg-gray-700/20 transition-all">
-                <svg className={`w-6 h-6 ${isLight ? 'text-gray-700' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <header
+              className={`flex items-center gap-3 p-3 flex-shrink-0 cursor-pointer ${
+                isLight ? 'bg-gray-50 border-b border-gray-200' : 'bg-[#1f1f1f] border-b border-[#2b2b2b]'
+              }`}
+            >
+              <button
+                onClick={() => {
+                  if (window.innerWidth < 768) setIsMobileMenuOpen(true);
+                }}
+                className="md:hidden p-1 rounded-full hover:bg-gray-700/20 transition-all"
+              >
+                <svg
+                  className={`w-6 h-6 ${isLight ? 'text-gray-700' : 'text-gray-400'}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 cursor-pointer flex items-center justify-center text-white font-bold" style={{ backgroundColor: accentColor }} onClick={() => handleProfileClick(currentChatUser)}>
-                  {currentChatUser === username && avatarUrl ? (
-                    <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-lg">{currentChatUser?.charAt(0).toUpperCase() || '?'}</span>
-                  )}
+                <div
+                  className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 cursor-pointer flex items-center justify-center text-white font-bold"
+                  style={{ backgroundColor: 'transparent' }}
+                  onClick={() => handleProfileClick(currentChatUser)}
+                >
+                  {(() => {
+                    const chat = chats.find((c) => c.otherUser === currentChatUser);
+                    const friendAvatar = chat?.otherUserAvatar;
+                    if (currentChatUser === username) {
+                      return avatarUrl ? (
+                        <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div
+                          className="w-full h-full flex items-center justify-center"
+                          style={{ backgroundColor: accentColor }}
+                        >
+                          {username?.charAt(0).toUpperCase() || '?'}
+                        </div>
+                      );
+                    } else {
+                      return friendAvatar ? (
+                        <img src={friendAvatar} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div
+                          className="w-full h-full flex items-center justify-center"
+                          style={{ backgroundColor: accentColor }}
+                        >
+                          {currentChatUser?.charAt(0).toUpperCase() || '?'}
+                        </div>
+                      );
+                    }
+                  })()}
                 </div>
                 <div className="flex-1 min-w-0 cursor-pointer" onClick={() => handleProfileClick(currentChatUser)}>
                   <span className={`font-medium ${isLight ? 'text-gray-900' : 'text-white'}`}>{currentChatUser}</span>
-                  <p className={`text-xs truncate ${isLight ? 'text-gray-400' : 'text-gray-500'}`}>👻 Нажмите для просмотра профиля</p>
+                  <p className={`text-xs truncate ${isLight ? 'text-gray-400' : 'text-gray-500'}`}>
+                    👻 Нажмите для просмотра профиля
+                  </p>
                 </div>
               </div>
             </header>
@@ -2064,22 +2460,72 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
               {messages.map((msg) => renderMessage(msg))}
               <div ref={messagesEndRef} />
             </div>
-            <form onSubmit={sendMessage} className={`flex items-end gap-2 p-3 flex-shrink-0 ${isLight ? 'bg-gray-50 border-t border-gray-200' : 'bg-[#1f1f1f] border-t border-[#2b2b2b]'}`}>
+            <form
+              onSubmit={sendMessage}
+              className={`flex items-end gap-2 p-3 flex-shrink-0 ${
+                isLight ? 'bg-gray-50 border-t border-gray-200' : 'bg-[#1f1f1f] border-t border-[#2b2b2b]'
+              }`}
+            >
               <label className="cursor-pointer p-2 rounded-full hover:bg-[var(--accent)]/10 transition-all">
-                <svg className={`w-5 h-5 ${isLight ? 'text-gray-600' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <svg
+                  className={`w-5 h-5 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
                 </svg>
-                <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} accept="image/*,video/*" />
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  onChange={handleFileUpload}
+                  accept="image/*,video/*"
+                />
               </label>
               {!isRecording ? (
                 <>
-                  <input type="text" value={text} onChange={(e) => setText(e.target.value)} placeholder="Напишите сообщение..." className={`flex-1 p-3 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all ${isLight ? 'bg-white text-gray-900 placeholder-gray-400' : 'bg-[#2b2b2b] text-white placeholder-gray-500'}`} />
-                  <button type="button" onClick={startRecording} className="p-2 rounded-full hover:bg-[var(--accent)]/10 transition-all">
-                    <svg className={`w-5 h-5 ${isLight ? 'text-gray-600' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                  <input
+                    type="text"
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    placeholder="Напишите сообщение..."
+                    className={`flex-1 p-3 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all ${
+                      isLight
+                        ? 'bg-white text-gray-900 placeholder-gray-400'
+                        : 'bg-[#2b2b2b] text-white placeholder-gray-500'
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={startRecording}
+                    className="p-2 rounded-full hover:bg-[var(--accent)]/10 transition-all"
+                  >
+                    <svg
+                      className={`w-5 h-5 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
+                      />
                     </svg>
                   </button>
-                  <button type="submit" disabled={isSending || !text.trim()} className="p-3 rounded-full text-white disabled:opacity-50 transition-all hover:scale-105 active:scale-95" style={{ backgroundColor: 'var(--accent)' }}>
+                  <button
+                    type="submit"
+                    disabled={isSending || !text.trim()}
+                    className="p-3 rounded-full text-white disabled:opacity-50 transition-all hover:scale-105 active:scale-95"
+                    style={{ backgroundColor: 'var(--accent)' }}
+                  >
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
                     </svg>
@@ -2088,10 +2534,23 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
               ) : (
                 <div className="flex items-center gap-3 flex-1">
                   <span className={`text-sm font-mono ${isLight ? 'text-gray-900' : 'text-white'}`}>
-                    {String(Math.floor(recordingTime / 60)).padStart(2, '0')}:{String(recordingTime % 60).padStart(2, '0')}
+                    {String(Math.floor(recordingTime / 60)).padStart(2, '0')}:
+                    {String(recordingTime % 60).padStart(2, '0')}
                   </span>
-                  <button type="button" onClick={cancelRecording} className="text-red-500 p-2 transition-all hover:scale-110">✕</button>
-                  <button type="button" onClick={stopRecording} className="text-green-500 p-2 transition-all hover:scale-110">●</button>
+                  <button
+                    type="button"
+                    onClick={cancelRecording}
+                    className="text-red-500 p-2 transition-all hover:scale-110"
+                  >
+                    ✕
+                  </button>
+                  <button
+                    type="button"
+                    onClick={stopRecording}
+                    className="text-green-500 p-2 transition-all hover:scale-110"
+                  >
+                    ●
+                  </button>
                 </div>
               )}
             </form>
@@ -2099,7 +2558,10 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
         ) : (
           <div className="flex-1 flex items-center justify-center flex-col gap-4">
             <div className="relative">
-              <GhostIcon className={`w-32 h-36 ${isLight ? 'text-[var(--accent)]' : 'text-white'} opacity-30`} size="large" />
+              <GhostIcon
+                className={`w-32 h-36 ${isLight ? 'text-[var(--accent)]' : 'text-white'} opacity-30`}
+                size="large"
+              />
               <div className="absolute inset-0 -m-8 rounded-full border-4 border-[var(--accent)] animate-ping opacity-10"></div>
             </div>
             <span className="text-2xl font-bold text-[var(--accent)]">Whisp</span>
@@ -2114,6 +2576,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
           onClose={() => setIsProfileOpen(false)}
           theme={theme}
           avatarUrl={avatarUrl}
+          userAvatar={chats.find((c) => c.otherUser === profileUsername)?.otherUserAvatar || null}
         />
       )}
       {isSettingsOpen && (
@@ -2158,7 +2621,7 @@ export default function HomePage() {
     const savedUsername = localStorage.getItem('whisp_username');
     if (savedUsername) {
       fetch(`/api/profile?username=${savedUsername}`)
-        .then(res => {
+        .then((res) => {
           if (res.ok) {
             setIsAuth(true);
             setUsername(savedUsername);
