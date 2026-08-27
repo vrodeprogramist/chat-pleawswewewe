@@ -754,7 +754,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   }, [messages]);
 
-  // ===================== ИСПРАВЛЕННАЯ ЗАГРУЗКА АВАТАРА =====================
+  // Загрузка своего аватара
   const loadAvatar = async () => {
     try {
       const cached = localStorage.getItem(`whisp_avatar_${username}`);
@@ -771,10 +771,8 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
       const res = await fetch(`/api/profile?username=${username}`);
       if (res.ok) {
         const data = await res.json();
-        // Пробуем оба варианта имени поля
-        const avatarUrl = data.avatarUrl || data.avatar_url;
-        if (avatarUrl) {
-          const newUrl = avatarUrl + '?t=' + Date.now();
+        if (data.avatarUrl) {
+          const newUrl = data.avatarUrl + '?t=' + Date.now();
           setAvatarUrl(newUrl);
           localStorage.setItem(`whisp_avatar_${username}`, newUrl);
         }
@@ -784,9 +782,10 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
-  // ===================== ИСПРАВЛЕННАЯ ЗАГРУЗКА АВАТАРА ДРУГОГО ПОЛЬЗОВАТЕЛЯ =====================
+  // Загрузка аватарки для одного пользователя (с кешированием)
   const fetchUserAvatar = async (user: string): Promise<string | null> => {
     try {
+      // Сначала проверяем localStorage
       const cached = localStorage.getItem(`whisp_avatar_${user}`);
       if (cached) {
         if (!cached.includes('?t=')) {
@@ -796,13 +795,12 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
         }
         return cached;
       }
+      // Запрос к API
       const res = await fetch(`/api/profile?username=${encodeURIComponent(user)}`);
       if (res.ok) {
         const data = await res.json();
-        // Пробуем оба варианта
-        const avatarUrl = data.avatarUrl || data.avatar_url;
-        if (avatarUrl) {
-          const newUrl = avatarUrl + '?t=' + Date.now();
+        if (data.avatarUrl) {
+          const newUrl = data.avatarUrl + '?t=' + Date.now();
           localStorage.setItem(`whisp_avatar_${user}`, newUrl);
           return newUrl;
         }
@@ -814,6 +812,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
+  // Обновление аватара конкретного пользователя в списке чатов
   const updateChatAvatar = (user: string, avatar: string | null) => {
     setChats(prev =>
       prev.map(c =>
@@ -822,6 +821,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     );
   };
 
+  // Гарантировать наличие аватарки для пользователя в списке чатов
   const ensureChatAvatar = async (user: string) => {
     if (!user) return;
     const existing = chats.find(c => c.otherUser === user);
@@ -879,6 +879,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
             console.error('Ошибка загрузки реакций:', error);
           }
         }
+        // Подгружаем аватарку собеседника, если её нет
         if (currentChatUser) {
           await ensureChatAvatar(currentChatUser);
         }
@@ -961,7 +962,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     loadAvatar();
   }, []);
 
-  // Отправка сообщения (без изменений)
+  // Отправка сообщения
   const sendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!text.trim() || isSending || !currentChatId) return;
@@ -1311,6 +1312,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
               }
               return [...prev, newMsg];
             });
+            // Если пришло сообщение от собеседника – проверим его аватарку
             if (newMsg.username !== username) {
               ensureChatAvatar(newMsg.username);
             }
