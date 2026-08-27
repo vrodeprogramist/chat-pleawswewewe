@@ -672,7 +672,7 @@ function AuthForm({
 }
 
 // ============================================================
-// ГЛАВНЫЙ КОМПОНЕНТ ЧАТА (ИСПРАВЛЕН)
+// ГЛАВНЫЙ КОМПОНЕНТ ЧАТА (ИСПРАВЛЕН – АВАТАРКИ ВЕЗДЕ)
 // ============================================================
 function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any) {
   const [chats, setChats] = useState<Chat[]>([]);
@@ -727,29 +727,24 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   const deduplicateMessages = (msgs: Message[]): Message[] => {
     const seen = new Map<number | string, Message>();
     const result: Message[] = [];
-
     for (const msg of msgs) {
-      // Если есть id, используем его как ключ
       if (msg.id && typeof msg.id === 'number') {
         if (!seen.has(msg.id)) {
           seen.set(msg.id, msg);
           result.push(msg);
         }
       } else if (msg.tempId) {
-        // Для временных сообщений используем tempId
         if (!seen.has(msg.tempId)) {
           seen.set(msg.tempId, msg);
           result.push(msg);
         }
       } else {
-        // Если нет ни id, ни tempId - добавляем как есть (крайний случай)
         result.push(msg);
       }
     }
     return result;
   };
 
-  // Автоматическая очистка дублей при обновлении messages
   useEffect(() => {
     if (messages.length > 0) {
       const unique = deduplicateMessages(messages);
@@ -759,6 +754,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   }, [messages]);
 
+  // ===================== ИСПРАВЛЕННАЯ ЗАГРУЗКА АВАТАРА =====================
   const loadAvatar = async () => {
     try {
       const cached = localStorage.getItem(`whisp_avatar_${username}`);
@@ -775,8 +771,10 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
       const res = await fetch(`/api/profile?username=${username}`);
       if (res.ok) {
         const data = await res.json();
-        if (data.avatarUrl) {
-          const newUrl = data.avatarUrl + '?t=' + Date.now();
+        // Пробуем оба варианта имени поля
+        const avatarUrl = data.avatarUrl || data.avatar_url;
+        if (avatarUrl) {
+          const newUrl = avatarUrl + '?t=' + Date.now();
           setAvatarUrl(newUrl);
           localStorage.setItem(`whisp_avatar_${username}`, newUrl);
         }
@@ -786,6 +784,55 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
+  // ===================== ИСПРАВЛЕННАЯ ЗАГРУЗКА АВАТАРА ДРУГОГО ПОЛЬЗОВАТЕЛЯ =====================
+  const fetchUserAvatar = async (user: string): Promise<string | null> => {
+    try {
+      const cached = localStorage.getItem(`whisp_avatar_${user}`);
+      if (cached) {
+        if (!cached.includes('?t=')) {
+          const newUrl = cached + '?t=' + Date.now();
+          localStorage.setItem(`whisp_avatar_${user}`, newUrl);
+          return newUrl;
+        }
+        return cached;
+      }
+      const res = await fetch(`/api/profile?username=${encodeURIComponent(user)}`);
+      if (res.ok) {
+        const data = await res.json();
+        // Пробуем оба варианта
+        const avatarUrl = data.avatarUrl || data.avatar_url;
+        if (avatarUrl) {
+          const newUrl = avatarUrl + '?t=' + Date.now();
+          localStorage.setItem(`whisp_avatar_${user}`, newUrl);
+          return newUrl;
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error(`Ошибка загрузки аватара ${user}:`, error);
+      return null;
+    }
+  };
+
+  const updateChatAvatar = (user: string, avatar: string | null) => {
+    setChats(prev =>
+      prev.map(c =>
+        c.otherUser === user ? { ...c, otherUserAvatar: avatar } : c
+      )
+    );
+  };
+
+  const ensureChatAvatar = async (user: string) => {
+    if (!user) return;
+    const existing = chats.find(c => c.otherUser === user);
+    if (existing && existing.otherUserAvatar) return; // уже есть
+    const avatar = await fetchUserAvatar(user);
+    if (avatar) {
+      updateChatAvatar(user, avatar);
+    }
+  };
+
+  // Загрузка списка чатов с аватарками собеседников
   const loadChats = async () => {
     try {
       const res = await fetch(`/api/chats?username=${username}`);
@@ -793,17 +840,8 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
         const data = await res.json();
         const chatsWithAvatars = await Promise.all(
           data.map(async (chat: Chat) => {
-            try {
-              const profileRes = await fetch(`/api/profile?username=${chat.otherUser}`);
-              if (profileRes.ok) {
-                const profile = await profileRes.json();
-                return { ...chat, otherUserAvatar: profile.avatarUrl || null };
-              }
-              return chat;
-            } catch (error) {
-              console.error(`Ошибка загрузки профиля ${chat.otherUser}:`, error);
-              return chat;
-            }
+            const avatar = await fetchUserAvatar(chat.otherUser);
+            return { ...chat, otherUserAvatar: avatar };
           })
         );
         setChats(chatsWithAvatars);
@@ -813,6 +851,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
+  // Загрузка сообщений
   const loadMessages = async (chatId: number) => {
     try {
       const res = await fetch(`/api/messages?chatId=${chatId}`);
@@ -840,6 +879,9 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
             console.error('Ошибка загрузки реакций:', error);
           }
         }
+        if (currentChatUser) {
+          await ensureChatAvatar(currentChatUser);
+        }
         setTimeout(scrollToBottom, 100);
       }
     } catch (error) {
@@ -847,11 +889,42 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
-  useEffect(() => {
-    loadChats();
-    loadAvatar();
-  }, []);
+  // Обработчик выбора чата
+  const handleChatSelect = async (chat: Chat) => {
+    setCurrentChatId(chat.id);
+    setCurrentChatUser(chat.otherUser);
+    await ensureChatAvatar(chat.otherUser);
+    await loadMessages(chat.id);
+    if (isMobile) setMobileView('chat');
+  };
 
+  // Создание нового чата
+  const createChat = async (otherUser: string) => {
+    try {
+      const res = await fetch('/api/chats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user1: username, user2: otherUser }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSearchQuery('');
+        setSearchResults([]);
+        setIsSearchOpen(false);
+        await loadChats();
+        const chatId = data.chatId;
+        setCurrentChatId(chatId);
+        setCurrentChatUser(otherUser);
+        await ensureChatAvatar(otherUser);
+        await loadMessages(chatId);
+        if (isMobile) setMobileView('chat');
+      }
+    } catch (error) {
+      console.error('Ошибка создания чата:', error);
+    }
+  };
+
+  // Поиск пользователей
   const searchUsers = async (query: string) => {
     if (!query.trim()) {
       setSearchResults([]);
@@ -872,37 +945,23 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
-  const createChat = async (otherUser: string) => {
-    try {
-      const res = await fetch('/api/chats', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user1: username, user2: otherUser }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSearchQuery('');
-        setSearchResults([]);
-        setIsSearchOpen(false);
-        await loadChats();
-        const chatId = data.chatId;
-        setCurrentChatId(chatId);
-        setCurrentChatUser(otherUser);
-        await loadMessages(chatId);
-        if (isMobile) setMobileView('chat');
-      }
-    } catch (error) {
-      console.error('Ошибка создания чата:', error);
-    }
-  };
+  // Событие обновления аватара
+  useEffect(() => {
+    const handleAvatarUpdate = () => {
+      loadAvatar();
+      loadChats(); // перезагружаем чаты, чтобы обновить аватарки собеседников
+    };
+    window.addEventListener('avatar-updated', handleAvatarUpdate);
+    return () => window.removeEventListener('avatar-updated', handleAvatarUpdate);
+  }, []);
 
-  const handleChatSelect = (chat: any) => {
-    setCurrentChatId(chat.id);
-    setCurrentChatUser(chat.otherUser);
-    loadMessages(chat.id);
-    if (isMobile) setMobileView('chat');
-  };
+  // Инициализация
+  useEffect(() => {
+    loadChats();
+    loadAvatar();
+  }, []);
 
+  // Отправка сообщения (без изменений)
   const sendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!text.trim() || isSending || !currentChatId) return;
@@ -947,11 +1006,9 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
       if (res.ok) {
         const data = await res.json();
         setMessages((prev) => {
-          // Ищем временное сообщение по tempId
           const index = prev.findIndex((msg) => msg.tempId === tempId);
           if (index !== -1) {
             const updated = [...prev];
-            // Если уже есть сообщение с таким id, удаляем его (чтобы избежать дубля)
             const existingIdIndex = updated.findIndex((msg) => msg.id === data.id);
             if (existingIdIndex !== -1 && existingIdIndex !== index) {
               updated.splice(existingIdIndex, 1);
@@ -959,7 +1016,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
             updated[index] = { ...updated[index], id: data.id, tempId: undefined };
             return updated;
           }
-          // Если не нашли временное (например, уже заменено через WebSocket) – не добавляем дубль
           if (prev.some((msg) => msg.id === data.id)) return prev;
           return [...prev, { ...optimisticMessage, id: data.id, tempId: undefined }];
         });
@@ -994,6 +1050,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
+  // Файлы
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !currentChatId) return;
@@ -1026,6 +1083,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
+  // Голосовые
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -1103,6 +1161,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
+  // Удаление
   const deleteMessage = async (messageId: number | string) => {
     const isTempId = typeof messageId === 'string' && messageId.startsWith('temp_');
     if (isTempId) {
@@ -1130,6 +1189,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }, 350);
   };
 
+  // Реакции
   const toggleReaction = async (messageId: number | string, emoji: string) => {
     const isTempId = typeof messageId === 'string' && messageId.startsWith('temp_');
     if (isTempId) return;
@@ -1187,6 +1247,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
+  // Hover
   const handleMouseEnter = (messageId: number | string) => {
     setHoveredMessageId(messageId);
     if (leaveTimeoutRef.current) {
@@ -1226,7 +1287,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
-  // Подписка на сообщения с дедупликацией
+  // Realtime подписки
   useEffect(() => {
     if (!currentChatId) return;
 
@@ -1239,24 +1300,20 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
           const newMsg = payload.new as Message;
           if (newMsg.chat_id === currentChatId) {
             setMessages((prev) => {
-              // 1. Если уже есть сообщение с таким id – не добавляем
               if (newMsg.id && prev.some((m) => m.id === newMsg.id)) return prev;
-              
-              // 2. Если это сообщение от текущего пользователя – удаляем все временные с таким же текстом
               if (newMsg.username === username && newMsg.text) {
-                // Удаляем все временные сообщения от текущего пользователя с таким же текстом
                 const filtered = prev.filter(
                   (m) => !(m.username === username && !m.id && m.text === newMsg.text)
                 );
-                // Если были удалены, добавляем новое, иначе просто добавляем новое (если нет дубля по id)
                 if (filtered.length !== prev.length) {
                   return [...filtered, newMsg];
                 }
               }
-
-              // 3. Иначе просто добавляем (если нет дубля по id – уже проверили)
               return [...prev, newMsg];
             });
+            if (newMsg.username !== username) {
+              ensureChatAvatar(newMsg.username);
+            }
             setTimeout(scrollToBottom, 50);
           }
         }
@@ -1336,7 +1393,9 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
-  // Отрисовка сообщений с уникальными ключами
+  // ============================================================
+  // РЕНДЕР ОДНОГО СООБЩЕНИЯ (с аватаркой собеседника)
+  // ============================================================
   const renderMessage = (msg: Message) => {
     const isMy = msg.username === username;
     const msgReactions = msg.reactions || [];
@@ -1350,10 +1409,18 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     const isHovered = hoveredMessageId === msg.id || hoveredMessageId === msg.tempId;
     const isAnimating = animatingReactionId === msg.id;
     const isPending = msg.tempId ? pendingMessages.has(msg.tempId) : false;
-    // Уникальный ключ с дополнительным суффиксом для гарантии
     const key = msg.id ? `msg-${msg.id}` : `msg-temp-${msg.tempId || Math.random()}`;
 
-    const senderAvatar = !isMy ? chats.find((c) => c.otherUser === msg.username)?.otherUserAvatar : null;
+    // Получаем аватарку собеседника из списка чатов
+    let senderAvatar = !isMy
+      ? chats.find((c) => c.otherUser === msg.username)?.otherUserAvatar
+      : null;
+
+    // Если в чатах нет, попробуем взять из localStorage
+    if (!senderAvatar && !isMy) {
+      const cached = localStorage.getItem(`whisp_avatar_${msg.username}`);
+      if (cached) senderAvatar = cached;
+    }
 
     return (
       <div
@@ -1533,7 +1600,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   };
 
   // ============================================================
-  // МОБИЛЬНАЯ ВЕРСИЯ (без изменений)
+  // МОБИЛЬНАЯ ВЕРСИЯ
   // ============================================================
   if (isMobile) {
     const bgColor = isLight ? '#ffffff' : '#0a0a0a';
@@ -1672,15 +1739,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   return (
                     <div
                       key={chat.id}
-                      onClick={() => {
-                        setIsSearchOpen(false);
-                        setSearchQuery('');
-                        setSearchResults([]);
-                        setCurrentChatId(chat.id);
-                        setCurrentChatUser(chat.otherUser);
-                        loadMessages(chat.id);
-                        setMobileView('chat');
-                      }}
+                      onClick={() => handleChatSelect(chat)}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -2219,7 +2278,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   }
 
   // ============================================================
-  // ДЕСКТОПНАЯ ВЕРСИЯ (без изменений)
+  // ДЕСКТОПНАЯ ВЕРСИЯ
   // ============================================================
   return (
     <div className={`h-dvh flex overflow-hidden ${isLight ? 'bg-gray-100' : 'bg-[#1c1515]'}`}>
@@ -2347,12 +2406,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
             return (
               <button
                 key={chat.id}
-                onClick={() => {
-                  setCurrentChatId(chat.id);
-                  setCurrentChatUser(chat.otherUser);
-                  loadMessages(chat.id);
-                  if (window.innerWidth < 768) setIsMobileMenuOpen(false);
-                }}
+                onClick={() => handleChatSelect(chat)}
                 className={`w-full flex items-center gap-3 p-3 transition-all ${
                   currentChatId === chat.id
                     ? isLight
