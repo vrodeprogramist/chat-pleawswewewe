@@ -646,14 +646,12 @@ function AuthForm({
     document.documentElement.style.setProperty('--accent', accentColor);
   }, [accentColor]);
 
-  // При переключении между входом и регистрацией сбрасываем согласие
   useEffect(() => {
     setAgreedToRules(false);
   }, [isLogin]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Для регистрации проверяем согласие
     if (!isLogin && !agreedToRules) {
       alert('Пожалуйста, примите правила сообщества');
       return;
@@ -737,7 +735,6 @@ function AuthForm({
             </span>
           </div>
 
-          {/* ★★★ ЧЕКБОКС СОГЛАСИЯ С ПРАВИЛАМИ (только для регистрации) ★★★ */}
           {!isLogin && (
             <div className="flex items-start gap-2 mt-2">
               <input
@@ -802,7 +799,7 @@ function AuthForm({
 }
 
 // ============================================================
-// ОСНОВНОЙ ЧАТ
+// ОСНОВНОЙ ЧАТ (ИСПРАВЛЕННАЯ ВЕРСИЯ – АВАТАРКИ ОБНОВЛЯЮТСЯ МГНОВЕННО)
 // ============================================================
 function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any) {
   const [chats, setChats] = useState<Chat[]>([]);
@@ -838,6 +835,11 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   const [pendingMessages, setPendingMessages] = useState<Set<string>>(new Set());
   const pendingMessagesRef = useRef<Set<string>>(new Set());
   const [isRulesOpen, setIsRulesOpen] = useState(false);
+  const [, forceUpdate] = useState({}); // ★★★ ПРИНУДИТЕЛЬНЫЙ ПЕРЕРЕНДЕР ★★★
+
+  // ★★★ ДОБАВЛЯЕМ LONG PRESS ДЛЯ МОБИЛЬНЫХ ★★★
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [isLongPressing, setIsLongPressing] = useState(false);
 
   const getAvatarColor = (name: string) => {
     if (!name || name.length === 0) return '#6c5ce7';
@@ -885,7 +887,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   }, [messages]);
 
-  // ===================== ЗАГРУЗКА АВАТАРА =====================
+  // ===================== ЗАГРУЗКА АВАТАРА (СВОЙ) =====================
   const loadAvatar = async () => {
     try {
       const cached = localStorage.getItem(`whisp_avatar_${username}`);
@@ -914,25 +916,23 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
-  // ===================== ЗАГРУЗКА АВАТАРА ДРУГОГО ПОЛЬЗОВАТЕЛЯ =====================
+  // ===================== ЗАГРУЗКА АВАТАРА ДРУГОГО ПОЛЬЗОВАТЕЛЯ (БЕЗ КЕШИРОВАНИЯ ДЛЯ ЧУЖИХ) =====================
   const fetchUserAvatar = async (user: string): Promise<string | null> => {
+    // Свой аватар берём из localStorage
+    if (user === username) {
+      const cached = localStorage.getItem(`whisp_avatar_${username}`);
+      if (cached) return cached;
+    }
     try {
-      const cached = localStorage.getItem(`whisp_avatar_${user}`);
-      if (cached) {
-        if (!cached.includes('?t=')) {
-          const newUrl = cached + '?t=' + Date.now();
-          localStorage.setItem(`whisp_avatar_${user}`, newUrl);
-          return newUrl;
-        }
-        return cached;
-      }
       const res = await fetch(`/api/profile?username=${encodeURIComponent(user)}`);
       if (res.ok) {
         const data = await res.json();
         const avatarUrl = data.avatarUrl || data.avatar_url;
         if (avatarUrl) {
           const newUrl = avatarUrl + '?t=' + Date.now();
-          localStorage.setItem(`whisp_avatar_${user}`, newUrl);
+          if (user === username) {
+            localStorage.setItem(`whisp_avatar_${username}`, newUrl);
+          }
           return newUrl;
         }
       }
@@ -958,6 +958,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     const avatar = await fetchUserAvatar(user);
     if (avatar) {
       updateChatAvatar(user, avatar);
+      forceUpdate({}); // принудительно обновляем
     }
   };
 
@@ -974,6 +975,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
           })
         );
         setChats(chatsWithAvatars);
+        forceUpdate({}); // принудительно обновляем после загрузки
       }
     } catch (error) {
       console.error('Ошибка загрузки чатов:', error);
@@ -1097,38 +1099,34 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'profiles' },
-        (payload) => {
+        async (payload) => {
           const updatedProfile = payload.new as { username: string; avatar_url: string | null };
-          const newAvatar = updatedProfile.avatar_url;
-          const newAvatarWithTimestamp = newAvatar ? newAvatar + '?t=' + Date.now() : null;
-
-          setChats((prevChats) =>
-            prevChats.map((chat) =>
-              chat.otherUser === updatedProfile.username
-                ? { ...chat, otherUserAvatar: newAvatarWithTimestamp }
+          const updatedUser = updatedProfile.username;
+          
+          // ★★★ ВСЕГДА ЗАПРАШИВАЕМ СВЕЖУЮ АВАТАРКУ ЧЕРЕЗ API (с ?t=) ★★★
+          const freshAvatar = await fetchUserAvatar(updatedUser);
+          
+          // ★★★ ОБНОВЛЯЕМ СПИСОК ЧАТОВ ДЛЯ ЭТОГО ПОЛЬЗОВАТЕЛЯ ★★★
+          setChats(prev => 
+            prev.map(chat => 
+              chat.otherUser === updatedUser 
+                ? { ...chat, otherUserAvatar: freshAvatar } 
                 : chat
             )
           );
-
-          if (updatedProfile.username === username) {
-            if (newAvatar) {
-              setAvatarUrl(newAvatarWithTimestamp);
-              localStorage.setItem(`whisp_avatar_${username}`, newAvatarWithTimestamp || '');
+          
+          // ★★★ ЕСЛИ ЭТО НАШ АВАТАР – ОБНОВЛЯЕМ СЕБЯ ★★★
+          if (updatedUser === username) {
+            if (freshAvatar) {
+              setAvatarUrl(freshAvatar);
+              localStorage.setItem(`whisp_avatar_${username}`, freshAvatar);
+            } else {
+              setAvatarUrl(null);
             }
           }
-
-          if (updatedProfile.username === currentChatUser) {
-            setChats((prev) =>
-              prev.map((chat) =>
-                chat.otherUser === currentChatUser
-                  ? { ...chat, otherUserAvatar: newAvatarWithTimestamp }
-                  : chat
-              )
-            );
-            if (newAvatar) {
-              localStorage.setItem(`whisp_avatar_${currentChatUser}`, newAvatarWithTimestamp || '');
-            }
-          }
+          
+          // ★★★ ПРИНУДИТЕЛЬНЫЙ ПЕРЕРЕНДЕР – ГЛАВНОЕ ★★★
+          forceUpdate({});
         }
       )
       .subscribe();
@@ -1136,7 +1134,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     return () => {
       profilesChannel.unsubscribe();
     };
-  }, [username, currentChatUser]);
+  }, [username]);
 
   // Отправка сообщения
   const sendMessage = async (e?: React.FormEvent) => {
@@ -1227,7 +1225,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
-  // Файлы
+  // ★★★ ИСПРАВЛЕННАЯ ЗАГРУЗКА ФАЙЛОВ (ФОТО И ВИДЕО) ★★★
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !currentChatId) return;
@@ -1235,13 +1233,23 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
       alert('Файл > 50 МБ');
       return;
     }
+
     const formData = new FormData();
     formData.append('file', file);
     formData.append('username', username);
+
     try {
       const res = await fetch('/api/upload', { method: 'POST', body: formData });
       if (res.ok) {
         const data = await res.json();
+
+        let type: 'image' | 'video' | 'file' = 'file';
+        if (file.type.startsWith('image/')) {
+          type = 'image';
+        } else if (file.type.startsWith('video/')) {
+          type = 'video';
+        }
+
         await fetch('/api/messages', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1249,11 +1257,13 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
             chatId: currentChatId,
             username,
             text: data.fileUrl,
-            type: data.isImage ? 'image' : data.isVideo ? 'video' : 'file',
+            type: type,
             fileName: file.name,
             avatar_url: avatarUrl,
           }),
         });
+
+        await loadMessages(currentChatId);
       }
     } catch (error) {
       console.error('Ошибка загрузки файла:', error);
@@ -1428,8 +1438,35 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
-  // Hover
+  // ★★★ Обработчики long press для мобильных ★★★
+  const handleTouchStart = (messageId: number | string) => {
+    const timer = setTimeout(() => {
+      setIsLongPressing(true);
+      setShowReactionsId(messageId);
+      setHoveredMessageId(messageId);
+    }, 600);
+    setLongPressTimer(timer);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+    setIsLongPressing(false);
+  };
+
+  const handleTouchMove = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+    setIsLongPressing(false);
+  };
+
+  // Hover для десктопа
   const handleMouseEnter = (messageId: number | string) => {
+    if (isMobile) return;
     setHoveredMessageId(messageId);
     if (leaveTimeoutRef.current) {
       clearTimeout(leaveTimeoutRef.current);
@@ -1444,6 +1481,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   };
 
   const handleMouseLeave = () => {
+    if (isMobile) return;
     setHoveredMessageId(null);
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
@@ -1593,14 +1631,10 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     const isPending = msg.tempId ? pendingMessages.has(msg.tempId) : false;
     const key = msg.id ? `msg-${msg.id}` : `msg-temp-${msg.tempId || Math.random()}`;
 
+    // ★★★ БЕРЁМ АВАТАРКУ ИЗ CHATS (НЕ ИЗ LOCALSTORAGE) ★★★
     let senderAvatar = !isMy
       ? chats.find((c) => c.otherUser === msg.username)?.otherUserAvatar
       : null;
-
-    if (!senderAvatar && !isMy) {
-      const cached = localStorage.getItem(`whisp_avatar_${msg.username}`);
-      if (cached) senderAvatar = cached;
-    }
 
     return (
       <div
@@ -1608,8 +1642,18 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
         className={`flex items-end gap-3 ${isMy ? 'flex-row-reverse' : ''} relative ${
           isPending ? 'animate-pulse opacity-70' : ''
         } ${!isPending && !isDeleting ? 'animate-slideUp' : ''} ${isDeleting ? 'animate-delete' : ''}`}
-        onMouseEnter={() => handleMouseEnter(msg.id || msg.tempId || key)}
-        onMouseLeave={handleMouseLeave}
+        onMouseEnter={() => !isMobile && handleMouseEnter(msg.id || msg.tempId || key)}
+        onMouseLeave={() => !isMobile && handleMouseLeave()}
+        onTouchStart={() => isMobile && handleTouchStart(msg.id || msg.tempId || key)}
+        onTouchEnd={() => isMobile && handleTouchEnd()}
+        onTouchMove={() => isMobile && handleTouchMove()}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          if (isMobile) {
+            setShowReactionsId(msg.id || msg.tempId || key);
+            setHoveredMessageId(msg.id || msg.tempId || key);
+          }
+        }}
       >
         {!isMy && (
           <div
