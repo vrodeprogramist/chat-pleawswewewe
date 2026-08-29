@@ -101,7 +101,7 @@ function GhostIcon({ className = "", size = "normal" }: { className?: string; si
 }
 
 // ============================================================
-// ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ (исправлен – добавлен userAvatar)
+// ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ
 // ============================================================
 function UserProfileModal({
   username: targetUsername,
@@ -231,6 +231,61 @@ function UserProfileModal({
 }
 
 // ============================================================
+// МОДАЛЬНОЕ ОКНО С ПРАВИЛАМИ СООБЩЕСТВА
+// ============================================================
+function RulesModal({ onClose, theme }: { onClose: () => void; theme: string }) {
+  const isLight = theme === 'light';
+  const bgColor = isLight ? '#ffffff' : '#0a0a0a';
+  const textPrimary = isLight ? '#000000' : '#ffffff';
+  const textSecondary = isLight ? '#8e8e93' : '#8e8e93';
+  const borderColor = isLight ? '#d1d1d6' : '#38383a';
+  const cardBg = isLight ? '#f0f0f0' : '#1c1c1e';
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" onClick={onClose}>
+      <div
+        className="max-w-lg w-full rounded-3xl p-6 max-h-[90vh] overflow-y-auto"
+        style={{ backgroundColor: bgColor, color: textPrimary }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold">📜 Правила сообщества</h2>
+          <button onClick={onClose} className="text-2xl hover:scale-110 transition-transform">✕</button>
+        </div>
+        <div className="space-y-3 text-sm leading-relaxed">
+          <p className="font-semibold text-base">Добро пожаловать в Whisp! Мы ценим каждого участника и просим соблюдать простые правила:</p>
+          <ul className="list-disc pl-5 space-y-2">
+            <li><strong>Будьте вежливы</strong> – уважайте мнение других, избегайте оскорблений и грубости.</li>
+            <li><strong>Запрещены:</strong> мат, ненормативная лексика, угрозы, разжигание ненависти, спам и флуд.</li>
+            <li><strong>Контент:</strong> не публикуйте материалы, нарушающие законодательство РФ, а также порнографию, насилие или любые другие неподобающие изображения/видео.</li>
+            <li><strong>Личные данные:</strong> не раскрывайте чужие личные данные без согласия (адреса, телефоны, паспортные данные).</li>
+            <li><strong>Соблюдайте тематику</strong> – этот чат создан для общения на общие темы, но мы оставляем за собой право ограничивать обсуждение, если оно выходит за рамки приличия.</li>
+            <li><strong>Администрация:</strong> мы оставляем за собой право блокировать пользователей за нарушение правил без предупреждения.</li>
+          </ul>
+          <p className="mt-4 text-center text-xs opacity-70" style={{ color: textSecondary }}>
+            Нарушение правил может привести к временной или постоянной блокировке аккаунта.
+            <br />Спасибо, что делаете наше сообщество лучше! 👻
+          </p>
+          <div className="mt-4 p-3 rounded-xl" style={{ backgroundColor: cardBg }}>
+            <p className="text-center text-xs" style={{ color: textSecondary }}>
+              ⚠️ Данный проект является учебным (школьным). Администрация не несёт ответственности за содержание сообщений,<br />
+              но оставляет за собой право модерировать контент в соответствии с правилами.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={onClose}
+          className="w-full mt-6 py-3 rounded-xl text-white font-semibold text-sm transition-all hover:opacity-80 active:scale-[0.98]"
+          style={{ backgroundColor: 'var(--accent)' }}
+        >
+          Принимаю и закрываю
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // НАСТРОЙКИ
 // ============================================================
 function SettingsModal({
@@ -243,6 +298,7 @@ function SettingsModal({
   accentColor,
   setAccentColor,
   setIsAuth,
+  openRules,
 }: any) {
   const [isUploading, setIsUploading] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -480,6 +536,31 @@ function SettingsModal({
             </div>
           </div>
         </div>
+
+        <button
+          onClick={() => {
+            onClose();
+            openRules();
+          }}
+          style={{
+            width: '100%',
+            padding: '10px',
+            borderRadius: '10px',
+            backgroundColor: 'rgba(124,58,237,0.1)',
+            color: accentColor,
+            border: 'none',
+            fontSize: '15px',
+            fontWeight: 500,
+            cursor: 'pointer',
+            marginBottom: '8px',
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(124,58,237,0.2)')}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(124,58,237,0.1)')}
+        >
+          📜 Правила сообщества
+        </button>
+
         <button
           onClick={() => {
             if (confirm('Вы уверены?')) {
@@ -505,8 +586,13 @@ function SettingsModal({
         >
           👻 Выйти из аккаунта
         </button>
+
         <div style={{ textAlign: 'center', marginTop: '12px', fontSize: '11px', color: textSecondary, opacity: 0.5 }}>
-          Whisp v1.0
+          Whisp v1.0 · Школьный проект
+        </div>
+        <div style={{ textAlign: 'center', marginTop: '8px', fontSize: '10px', color: textSecondary, opacity: 0.4 }}>
+          © 2026 Whisp. Все права защищены. Данный продукт разработан в образовательных целях.
+          <br />Администрация не несёт ответственности за содержание сообщений пользователей.
         </div>
       </div>
     </div>
@@ -514,7 +600,7 @@ function SettingsModal({
 }
 
 // ============================================================
-// ЗАГРУЗКА и АВТОРИЗАЦИЯ
+// ЗАГРУЗКА
 // ============================================================
 function LoadingScreen({ theme }: { theme: string }) {
   return (
@@ -537,6 +623,9 @@ function LoadingScreen({ theme }: { theme: string }) {
   );
 }
 
+// ============================================================
+// АВТОРИЗАЦИЯ (С СОГЛАСИЕМ НА ПРАВИЛА)
+// ============================================================
 function AuthForm({
   username,
   setUsername,
@@ -547,16 +636,28 @@ function AuthForm({
   setIsAuth,
   theme,
   accentColor,
+  onOpenRules,
 }: any) {
   const [isLoading, setIsLoading] = useState(false);
+  const [agreedToRules, setAgreedToRules] = useState(false);
   const isLight = theme === 'light';
 
   useEffect(() => {
     document.documentElement.style.setProperty('--accent', accentColor);
   }, [accentColor]);
 
+  // При переключении между входом и регистрацией сбрасываем согласие
+  useEffect(() => {
+    setAgreedToRules(false);
+  }, [isLogin]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Для регистрации проверяем согласие
+    if (!isLogin && !agreedToRules) {
+      alert('Пожалуйста, примите правила сообщества');
+      return;
+    }
     setIsLoading(true);
     const endpoint = isLogin ? '/api/login' : '/api/register';
     try {
@@ -635,9 +736,36 @@ function AuthForm({
               🔮
             </span>
           </div>
+
+          {/* ★★★ ЧЕКБОКС СОГЛАСИЯ С ПРАВИЛАМИ (только для регистрации) ★★★ */}
+          {!isLogin && (
+            <div className="flex items-start gap-2 mt-2">
+              <input
+                type="checkbox"
+                id="rulesAgreement"
+                checked={agreedToRules}
+                onChange={(e) => setAgreedToRules(e.target.checked)}
+                className="mt-1 w-4 h-4 accent-[var(--accent)] cursor-pointer"
+              />
+              <label htmlFor="rulesAgreement" className={`text-sm ${isLight ? 'text-gray-600' : 'text-gray-300'} cursor-pointer`}>
+                Я принимаю{' '}
+                <span
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onOpenRules();
+                  }}
+                  style={{ color: 'var(--accent)', textDecoration: 'underline', cursor: 'pointer' }}
+                >
+                  правила сообщества
+                </span>
+              </label>
+            </div>
+          )}
+
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || (!isLogin && !agreedToRules)}
             className="w-full py-4 rounded-xl text-white font-semibold text-sm transition-all duration-300 hover:opacity-80 active:scale-[0.98] disabled:opacity-50"
             style={{ backgroundColor: 'var(--accent)' }}
           >
@@ -653,6 +781,7 @@ function AuthForm({
             )}
           </button>
         </form>
+
         <p
           onClick={() => setIsLogin(!isLogin)}
           className={`text-sm text-center mt-6 cursor-pointer hover:underline transition-all duration-300 ${
@@ -661,6 +790,7 @@ function AuthForm({
         >
           {isLogin ? 'Нет аккаунта? Создать' : 'Уже есть аккаунт? Войти'}
         </p>
+
         <div className="flex items-center justify-center gap-3 mt-8">
           <div className="w-8 h-[2px] bg-[var(--accent)] opacity-30 rounded-full"></div>
           <p className={`text-xs ${isLight ? 'text-gray-400' : 'text-gray-600'}`}>👻 Whisp</p>
@@ -672,7 +802,7 @@ function AuthForm({
 }
 
 // ============================================================
-// ГЛАВНЫЙ КОМПОНЕНТ ЧАТА (ИСПРАВЛЕН – АВАТАРКИ ВЕЗДЕ, РЕАКЦИИ, ФОТО, СКРОЛЛ)
+// ОСНОВНОЙ ЧАТ
 // ============================================================
 function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any) {
   const [chats, setChats] = useState<Chat[]>([]);
@@ -707,6 +837,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   const [animatingReactionId, setAnimatingReactionId] = useState<number | string | null>(null);
   const [pendingMessages, setPendingMessages] = useState<Set<string>>(new Set());
   const pendingMessagesRef = useRef<Set<string>>(new Set());
+  const [isRulesOpen, setIsRulesOpen] = useState(false);
 
   const getAvatarColor = (name: string) => {
     if (!name || name.length === 0) return '#6c5ce7';
@@ -823,7 +954,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   const ensureChatAvatar = async (user: string) => {
     if (!user) return;
     const existing = chats.find(c => c.otherUser === user);
-    if (existing && existing.otherUserAvatar) return; // уже есть
+    if (existing && existing.otherUserAvatar) return;
     const avatar = await fetchUserAvatar(user);
     if (avatar) {
       updateChatAvatar(user, avatar);
@@ -947,7 +1078,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   useEffect(() => {
     const handleAvatarUpdate = () => {
       loadAvatar();
-      loadChats(); // перезагружаем чаты, чтобы обновить аватарки собеседников
+      loadChats();
     };
     window.addEventListener('avatar-updated', handleAvatarUpdate);
     return () => window.removeEventListener('avatar-updated', handleAvatarUpdate);
@@ -968,21 +1099,34 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
         { event: 'UPDATE', schema: 'public', table: 'profiles' },
         (payload) => {
           const updatedProfile = payload.new as { username: string; avatar_url: string | null };
-          // Обновляем аватарку друга в списке чатов
+          const newAvatar = updatedProfile.avatar_url;
+          const newAvatarWithTimestamp = newAvatar ? newAvatar + '?t=' + Date.now() : null;
+
           setChats((prevChats) =>
             prevChats.map((chat) =>
               chat.otherUser === updatedProfile.username
-                ? { ...chat, otherUserAvatar: updatedProfile.avatar_url }
+                ? { ...chat, otherUserAvatar: newAvatarWithTimestamp }
                 : chat
             )
           );
-          // Обновляем свою аватарку, если изменилась
+
           if (updatedProfile.username === username) {
-            const newAvatar = updatedProfile.avatar_url;
             if (newAvatar) {
-              const urlWithTimestamp = newAvatar + '?t=' + Date.now();
-              setAvatarUrl(urlWithTimestamp);
-              localStorage.setItem(`whisp_avatar_${username}`, urlWithTimestamp);
+              setAvatarUrl(newAvatarWithTimestamp);
+              localStorage.setItem(`whisp_avatar_${username}`, newAvatarWithTimestamp || '');
+            }
+          }
+
+          if (updatedProfile.username === currentChatUser) {
+            setChats((prev) =>
+              prev.map((chat) =>
+                chat.otherUser === currentChatUser
+                  ? { ...chat, otherUserAvatar: newAvatarWithTimestamp }
+                  : chat
+              )
+            );
+            if (newAvatar) {
+              localStorage.setItem(`whisp_avatar_${currentChatUser}`, newAvatarWithTimestamp || '');
             }
           }
         }
@@ -992,7 +1136,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     return () => {
       profilesChannel.unsubscribe();
     };
-  }, [username]);
+  }, [username, currentChatUser]);
 
   // Отправка сообщения
   const sendMessage = async (e?: React.FormEvent) => {
@@ -1222,7 +1366,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }, 350);
   };
 
-  // ★★★ ИСПРАВЛЕННАЯ ФУНКЦИЯ toggleReaction: теперь закрывает панель реакций на мобильных ★★★
+  // Реакции
   const toggleReaction = async (messageId: number | string, emoji: string) => {
     const isTempId = typeof messageId === 'string' && messageId.startsWith('temp_');
     if (isTempId) return;
@@ -1271,7 +1415,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
           body: JSON.stringify({ messageId, username, reaction: emoji }),
         });
       }
-      // ★★★ Закрываем панель реакций на мобильных устройствах ★★★
       if (isMobile) {
         setShowReactionsId(null);
         setHoveredMessageId(null);
@@ -1426,13 +1569,14 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
       setIsSearchOpen(false);
       setSearchQuery('');
       setSearchResults([]);
+      setIsSettingsOpen(false);
       setProfileUsername(user);
       setIsProfileOpen(true);
     }
   };
 
   // ============================================================
-  // РЕНДЕР ОДНОГО СООБЩЕНИЯ (с аватаркой собеседника, адаптивными фото)
+  // РЕНДЕР ОДНОГО СООБЩЕНИЯ
   // ============================================================
   const renderMessage = (msg: Message) => {
     const isMy = msg.username === username;
@@ -1449,12 +1593,10 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     const isPending = msg.tempId ? pendingMessages.has(msg.tempId) : false;
     const key = msg.id ? `msg-${msg.id}` : `msg-temp-${msg.tempId || Math.random()}`;
 
-    // Получаем аватарку собеседника из списка чатов
     let senderAvatar = !isMy
       ? chats.find((c) => c.otherUser === msg.username)?.otherUserAvatar
       : null;
 
-    // Если в чатах нет, попробуем взять из localStorage
     if (!senderAvatar && !isMy) {
       const cached = localStorage.getItem(`whisp_avatar_${msg.username}`);
       if (cached) senderAvatar = cached;
@@ -1535,7 +1677,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                 }`}
                 style={{ maxWidth: '100%', wordBreak: 'break-word' }}
               >
-                {/* ★★★ ИСПРАВЛЕННЫЙ РЕНДЕРИНГ ФОТО ★★★ */}
                 {msg.type === 'image' && (
                   <img
                     src={msg.text}
@@ -1659,7 +1800,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   };
 
   // ============================================================
-  // МОБИЛЬНАЯ ВЕРСИЯ (исправлена кнопка "Чаты", отключен горизонтальный скролл)
+  // МОБИЛЬНАЯ ВЕРСИЯ
   // ============================================================
   if (isMobile) {
     const bgColor = isLight ? '#ffffff' : '#0a0a0a';
@@ -1696,6 +1837,13 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
               localStorage.removeItem('whisp_username');
               window.location.reload();
             }}
+            openRules={() => setIsRulesOpen(true)}
+          />
+        )}
+        {isRulesOpen && (
+          <RulesModal
+            onClose={() => setIsRulesOpen(false)}
+            theme={theme}
           />
         )}
         <div
@@ -1707,7 +1855,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
             flexDirection: 'column',
             overflow: 'hidden',
             position: 'relative',
-            overflowX: 'hidden', // ★★★ отключаем горизонтальный скролл ★★★
+            overflowX: 'hidden',
           }}
         >
           {mobileView === 'chats' && (
@@ -1735,6 +1883,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                       setIsSearchOpen(false);
                       setSearchQuery('');
                       setSearchResults([]);
+                      setIsProfileOpen(false);
                       setIsSettingsOpen(true);
                     }}
                     style={{
@@ -1769,6 +1918,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                     setIsSearchOpen(false);
                     setSearchQuery('');
                     setSearchResults([]);
+                    setIsProfileOpen(false);
                     setIsSettingsOpen(true);
                   }}
                   style={{
@@ -1791,7 +1941,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   padding: '8px 12px',
                   paddingBottom: '80px',
                   backgroundColor: bgColor,
-                  overflowX: 'hidden', // ★★★ отключаем горизонтальный скролл ★★★
+                  overflowX: 'hidden',
                 }}
               >
                 {chats.map((chat) => {
@@ -1866,7 +2016,34 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                     </div>
                   );
                 })}
+                <div
+                  style={{
+                    textAlign: 'center',
+                    padding: '12px 16px 4px',
+                    fontSize: '11px',
+                    color: textSecondary,
+                    opacity: 0.6,
+                  }}
+                >
+                  👻 Проект для школы. Автор не несёт ответственности за содержание сообщений.
+                  <br />
+                  <span
+                    onClick={() => {
+                      setIsRulesOpen(true);
+                    }}
+                    style={{
+                      color: accentColor,
+                      textDecoration: 'underline',
+                      cursor: 'pointer',
+                      opacity: 0.8,
+                    }}
+                  >
+                    📜 Правила сообщества
+                  </span>
+                </div>
               </div>
+
+              {/* НИЖНИЙ ТАББАР */}
               <div
                 style={{
                   position: 'fixed',
@@ -1887,10 +2064,11 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
               >
                 <button
                   onClick={() => {
-                    // ★★★ Исправлено: при нажатии "Чаты" закрываем поиск и переключаемся ★★★
                     setIsSearchOpen(false);
                     setSearchQuery('');
                     setSearchResults([]);
+                    setIsProfileOpen(false);
+                    setIsSettingsOpen(false);
                     setMobileView('chats');
                   }}
                   style={{
@@ -1920,6 +2098,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   </svg>
                   <span>Чаты</span>
                 </button>
+
                 <button
                   onClick={() => {
                     if (isSearchOpen) {
@@ -1927,6 +2106,8 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                       setSearchQuery('');
                       setSearchResults([]);
                     } else {
+                      setIsProfileOpen(false);
+                      setIsSettingsOpen(false);
                       setIsSearchOpen(true);
                     }
                   }}
@@ -1950,11 +2131,60 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   </svg>
                   <span>Поиск</span>
                 </button>
+
                 <button
                   onClick={() => {
                     setIsSearchOpen(false);
                     setSearchQuery('');
                     setSearchResults([]);
+                    setIsSettingsOpen(false);
+                    handleProfileClick(username);
+                  }}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '2px',
+                    padding: '4px 16px',
+                    border: 'none',
+                    background: 'none',
+                    color: textSecondary,
+                    fontSize: '10px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    position: 'relative',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '26px',
+                      height: '26px',
+                      borderRadius: '50%',
+                      background: accentColor,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      username?.charAt(0).toUpperCase() || '?'
+                    )}
+                  </div>
+                  <span>Профиль</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setIsSearchOpen(false);
+                    setSearchQuery('');
+                    setSearchResults([]);
+                    setIsProfileOpen(false);
                     setIsSettingsOpen(true);
                   }}
                   style={{
@@ -1978,6 +2208,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   <span>Настройки</span>
                 </button>
               </div>
+
               {isSearchOpen && (
                 <div
                   style={{
@@ -2081,6 +2312,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
               )}
             </>
           )}
+
           {mobileView === 'chat' && currentChatId && (
             <>
               <div
@@ -2102,6 +2334,9 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
               >
                 <button
                   onClick={() => {
+                    setIsProfileOpen(false);
+                    setIsSettingsOpen(false);
+                    setIsSearchOpen(false);
                     setMobileView('chats');
                     setCurrentChatId(null);
                   }}
@@ -2122,6 +2357,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                     setIsSearchOpen(false);
                     setSearchQuery('');
                     setSearchResults([]);
+                    setIsSettingsOpen(false);
                     setProfileUsername(currentChatUser);
                     setIsProfileOpen(true);
                   }}
@@ -2376,7 +2612,11 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
             <button
               onClick={() => {
                 setIsSearchOpen(!isSearchOpen);
-                if (!isSearchOpen) setSearchResults([]);
+                if (!isSearchOpen) {
+                  setSearchResults([]);
+                  setIsProfileOpen(false);
+                  setIsSettingsOpen(false);
+                }
               }}
               className="p-2 rounded-full hover:bg-[var(--accent)]/10 transition-all"
             >
@@ -2395,7 +2635,10 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
               </svg>
             </button>
             <button
-              onClick={() => setIsSettingsOpen(true)}
+              onClick={() => {
+                setIsProfileOpen(false);
+                setIsSettingsOpen(true);
+              }}
               className="p-2 rounded-full hover:bg-[var(--accent)]/10 transition-all"
             >
               <svg
@@ -2512,6 +2755,21 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
               </button>
             );
           })}
+          <div className={`text-center text-xs py-2 px-4 ${isLight ? 'text-gray-400' : 'text-gray-500'} opacity-60`}>
+            👻 Проект для школы. Автор не несёт ответственности за содержание сообщений.
+            <br />
+            <span
+              onClick={() => setIsRulesOpen(true)}
+              style={{
+                color: accentColor,
+                textDecoration: 'underline',
+                cursor: 'pointer',
+                opacity: 0.8,
+              }}
+            >
+              📜 Правила сообщества
+            </span>
+          </div>
         </div>
       </div>
       <div className="flex-1 flex flex-col min-w-0">
@@ -2716,6 +2974,13 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
             localStorage.removeItem('whisp_username');
             window.location.reload();
           }}
+          openRules={() => setIsRulesOpen(true)}
+        />
+      )}
+      {isRulesOpen && (
+        <RulesModal
+          onClose={() => setIsRulesOpen(false)}
+          theme={theme}
         />
       )}
     </div>
@@ -2723,7 +2988,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
 }
 
 // ============================================================
-// ЭКСПОРТ ПО УМОЛЧАНИЮ
+// ГЛАВНЫЙ КОМПОНЕНТ – ЭКСПОРТ
 // ============================================================
 export default function HomePage() {
   const [username, setUsername] = useState('');
@@ -2733,6 +2998,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [accentColor, setAccentColor] = useState('#7c3aed');
+  const [isRulesOpen, setIsRulesOpen] = useState(false);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('whisp_theme') as 'dark' | 'light' || 'dark';
@@ -2762,27 +3028,34 @@ export default function HomePage() {
   if (loading) return <LoadingScreen theme={theme} />;
   if (isAuth) {
     return (
-      <ChatApp
-        username={username}
-        theme={theme}
-        setTheme={setTheme}
-        accentColor={accentColor}
-        setAccentColor={setAccentColor}
-      />
+      <>
+        <ChatApp
+          username={username}
+          theme={theme}
+          setTheme={setTheme}
+          accentColor={accentColor}
+          setAccentColor={setAccentColor}
+        />
+        {isRulesOpen && <RulesModal onClose={() => setIsRulesOpen(false)} theme={theme} />}
+      </>
     );
   }
 
   return (
-    <AuthForm
-      username={username}
-      setUsername={setUsername}
-      password={password}
-      setPassword={setPassword}
-      isLogin={isLogin}
-      setIsLogin={setIsLogin}
-      setIsAuth={setIsAuth}
-      theme={theme}
-      accentColor={accentColor}
-    />
+    <>
+      <AuthForm
+        username={username}
+        setUsername={setUsername}
+        password={password}
+        setPassword={setPassword}
+        isLogin={isLogin}
+        setIsLogin={setIsLogin}
+        setIsAuth={setIsAuth}
+        theme={theme}
+        accentColor={accentColor}
+        onOpenRules={() => setIsRulesOpen(true)}
+      />
+      {isRulesOpen && <RulesModal onClose={() => setIsRulesOpen(false)} theme={theme} />}
+    </>
   );
 }
