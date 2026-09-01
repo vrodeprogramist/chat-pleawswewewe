@@ -701,8 +701,7 @@ function AuthForm({
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="relative group">
-            <input
-              type="text"
+            <input              type="text"
               placeholder="Логин"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
@@ -799,7 +798,7 @@ function AuthForm({
 }
 
 // ============================================================
-// ОСНОВНОЙ ЧАТ (ИСПРАВЛЕННАЯ ВЕРСИЯ – АВАТАРКИ ОБНОВЛЯЮТСЯ МГНОВЕННО)
+// ОСНОВНОЙ ЧАТ
 // ============================================================
 function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any) {
   const [chats, setChats] = useState<Chat[]>([]);
@@ -835,9 +834,9 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
   const [pendingMessages, setPendingMessages] = useState<Set<string>>(new Set());
   const pendingMessagesRef = useRef<Set<string>>(new Set());
   const [isRulesOpen, setIsRulesOpen] = useState(false);
-  const [, forceUpdate] = useState({}); // ★★★ ПРИНУДИТЕЛЬНЫЙ ПЕРЕРЕНДЕР ★★★
+  const [, forceUpdate] = useState({});
 
-  // ★★★ ДОБАВЛЯЕМ LONG PRESS ДЛЯ МОБИЛЬНЫХ ★★★
+  // ★★★ LONG PRESS ДЛЯ МОБИЛЬНЫХ (увеличен таймер до 1000 мс) ★★★
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
   const [isLongPressing, setIsLongPressing] = useState(false);
 
@@ -916,15 +915,14 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
-  // ===================== ЗАГРУЗКА АВАТАРА ДРУГОГО ПОЛЬЗОВАТЕЛЯ (БЕЗ КЕШИРОВАНИЯ ДЛЯ ЧУЖИХ) =====================
+  // ===================== ЗАГРУЗКА АВАТАРА ДРУГОГО ПОЛЬЗОВАТЕЛЯ =====================
   const fetchUserAvatar = async (user: string): Promise<string | null> => {
-    // Свой аватар берём из localStorage
     if (user === username) {
       const cached = localStorage.getItem(`whisp_avatar_${username}`);
       if (cached) return cached;
     }
     try {
-      const res = await fetch(`/api/profile?username=${encodeURIComponent(user)}`);
+      const res = await fetch(`/api/profile?username=${encodeURIComponent(user)}&_=${Date.now()}`);
       if (res.ok) {
         const data = await res.json();
         const avatarUrl = data.avatarUrl || data.avatar_url;
@@ -958,7 +956,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     const avatar = await fetchUserAvatar(user);
     if (avatar) {
       updateChatAvatar(user, avatar);
-      forceUpdate({}); // принудительно обновляем
+      forceUpdate({});
     }
   };
 
@@ -975,7 +973,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
           })
         );
         setChats(chatsWithAvatars);
-        forceUpdate({}); // принудительно обновляем после загрузки
+        forceUpdate({});
       }
     } catch (error) {
       console.error('Ошибка загрузки чатов:', error);
@@ -1103,10 +1101,8 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
           const updatedProfile = payload.new as { username: string; avatar_url: string | null };
           const updatedUser = updatedProfile.username;
           
-          // ★★★ ВСЕГДА ЗАПРАШИВАЕМ СВЕЖУЮ АВАТАРКУ ЧЕРЕЗ API (с ?t=) ★★★
           const freshAvatar = await fetchUserAvatar(updatedUser);
           
-          // ★★★ ОБНОВЛЯЕМ СПИСОК ЧАТОВ ДЛЯ ЭТОГО ПОЛЬЗОВАТЕЛЯ ★★★
           setChats(prev => 
             prev.map(chat => 
               chat.otherUser === updatedUser 
@@ -1115,7 +1111,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
             )
           );
           
-          // ★★★ ЕСЛИ ЭТО НАШ АВАТАР – ОБНОВЛЯЕМ СЕБЯ ★★★
           if (updatedUser === username) {
             if (freshAvatar) {
               setAvatarUrl(freshAvatar);
@@ -1125,7 +1120,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
             }
           }
           
-          // ★★★ ПРИНУДИТЕЛЬНЫЙ ПЕРЕРЕНДЕР – ГЛАВНОЕ ★★★
           forceUpdate({});
         }
       )
@@ -1225,12 +1219,25 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
-  // ★★★ ИСПРАВЛЕННАЯ ЗАГРУЗКА ФАЙЛОВ (ФОТО И ВИДЕО) ★★★
+  // ★★★ ЗАГРУЗКА ФАЙЛОВ (ТОЛЬКО ВИДЕО) ★★★
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !currentChatId) return;
+
+    if (file.type.startsWith('image/')) {
+      alert('Отправка изображений запрещена. Разрешены только видео.');
+      e.target.value = '';
+      return;
+    }
+    if (!file.type.startsWith('video/')) {
+      alert('Разрешены только видеофайлы.');
+      e.target.value = '';
+      return;
+    }
+
     if (file.size > 50 * 1024 * 1024) {
       alert('Файл > 50 МБ');
+      e.target.value = '';
       return;
     }
 
@@ -1264,9 +1271,13 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
         });
 
         await loadMessages(currentChatId);
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Ошибка загрузки файла');
       }
     } catch (error) {
       console.error('Ошибка загрузки файла:', error);
+      alert('Ошибка соединения при загрузке файла');
     }
   };
 
@@ -1438,13 +1449,13 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     }
   };
 
-  // ★★★ Обработчики long press для мобильных ★★★
+  // ★★★ ОБРАБОТЧИКИ ДОЛГОГО НАЖАТИЯ (1000 мс) ★★★
   const handleTouchStart = (messageId: number | string) => {
     const timer = setTimeout(() => {
       setIsLongPressing(true);
       setShowReactionsId(messageId);
       setHoveredMessageId(messageId);
-    }, 600);
+    }, 1000);
     setLongPressTimer(timer);
   };
 
@@ -1631,7 +1642,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
     const isPending = msg.tempId ? pendingMessages.has(msg.tempId) : false;
     const key = msg.id ? `msg-${msg.id}` : `msg-temp-${msg.tempId || Math.random()}`;
 
-    // ★★★ БЕРЁМ АВАТАРКУ ИЗ CHATS (НЕ ИЗ LOCALSTORAGE) ★★★
     let senderAvatar = !isMy
       ? chats.find((c) => c.otherUser === msg.username)?.otherUserAvatar
       : null;
@@ -1688,7 +1698,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
 
           <div className="relative flex flex-col items-start gap-1 w-full">
             <div className="flex items-center gap-2 w-full">
-              {isMy && (isHovered || showReactions) && !isPending && !isDeleting && (
+              {isMy && (isHovered || showReactions) && !isMobile && !isPending && !isDeleting && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -1752,24 +1762,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                 {(!msg.type || msg.type === 'text') && <span className="text-base">{msg.text}</span>}
                 {isPending && <span className="inline-block ml-2 text-xs opacity-50 animate-pulse">⏳</span>}
               </div>
-
-              {isMobile && !isPending && !isDeleting && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleReactionsMobile(msg.id || msg.tempId || key);
-                  }}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-base transition-all hover:scale-110 ${
-                    showReactions
-                      ? 'bg-[var(--accent)]/30'
-                      : isLight
-                      ? 'bg-gray-200 hover:bg-gray-300'
-                      : 'bg-[#2b2b2b] hover:bg-[#3b3b3b]'
-                  }`}
-                >
-                  😊
-                </button>
-              )}
             </div>
 
             {(isHovered || showReactions) && !isPending && !isDeleting && (
@@ -2087,7 +2079,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                 </div>
               </div>
 
-              {/* НИЖНИЙ ТАББАР */}
+              {/* НИЖНИЙ ТАББАР - УДАЛЕНА КНОПКА ПРОФИЛЬ */}
               <div
                 style={{
                   position: 'fixed',
@@ -2174,53 +2166,6 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                     <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                   <span>Поиск</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setIsSearchOpen(false);
-                    setSearchQuery('');
-                    setSearchResults([]);
-                    setIsSettingsOpen(false);
-                    handleProfileClick(username);
-                  }}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '2px',
-                    padding: '4px 16px',
-                    border: 'none',
-                    background: 'none',
-                    color: textSecondary,
-                    fontSize: '10px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    position: 'relative',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: '26px',
-                      height: '26px',
-                      borderRadius: '50%',
-                      background: accentColor,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {avatarUrl ? (
-                      <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      username?.charAt(0).toUpperCase() || '?'
-                    )}
-                  </div>
-                  <span>Профиль</span>
                 </button>
 
                 <button
@@ -2521,7 +2466,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                     ref={fileInputRef}
                     style={{ display: 'none' }}
                     onChange={handleFileUpload}
-                    accept="image/*,video/*"
+                    accept="video/*"
                   />
                 </label>
                 {!isRecording ? (
@@ -2910,7 +2855,7 @@ function ChatApp({ username, theme, setTheme, accentColor, setAccentColor }: any
                   ref={fileInputRef}
                   className="hidden"
                   onChange={handleFileUpload}
-                  accept="image/*,video/*"
+                  accept="video/*"
                 />
               </label>
               {!isRecording ? (
@@ -3102,4 +3047,4 @@ export default function HomePage() {
       {isRulesOpen && <RulesModal onClose={() => setIsRulesOpen(false)} theme={theme} />}
     </>
   );
-}
+              }
